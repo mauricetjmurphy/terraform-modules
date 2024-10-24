@@ -17,7 +17,7 @@ resource "aws_cloudfront_distribution" "s3_distribution" {
   }
   enabled             = true
   is_ipv6_enabled     = true
-  comment             = "Distribution for CDN  ${var.bucket_name}-${var.environment}"
+  comment             = "Managed by Gemtech Solutions"
   default_root_object = var.default_root_object
   aliases             = [var.domain_name]
 
