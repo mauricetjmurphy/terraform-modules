@@ -21,6 +21,7 @@ resource "aws_lambda_function" "main" {
   memory_size      = var.memory_size
   handler          = var.handler
   runtime          = var.runtime
+  filename         = "lambda-package/main.zip"
   source_code_hash = filebase64sha256("lambda-package/main.zip")
   role             = aws_iam_role.lambda_exec.arn
   timeout          = var.lambda_timeout
