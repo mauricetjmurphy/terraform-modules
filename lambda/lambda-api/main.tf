@@ -15,10 +15,12 @@ module "labels" {
 ## Lambda Layers allow you to reuse shared bits of code across multiple lambda functions.
 ##-----------------------------------------------------------------------------
 resource "aws_lambda_function" "main" {
-  function_name    = "${var.lambda_function_name}"
-  handler          = "main.handler"
-  runtime          = "python3.9"
-
+  count            = var.enable ? 1 : 0
+  description      = var.description
+  function_name    = var.lambda_function_name
+  memory_size      = var.memory_size
+  handler          = var.handler
+  runtime          = var.runtime
   source_code_hash = filebase64sha256("lambda/lambda-package/main.zip")
   role             = aws_iam_role.lambda_exec.arn
   timeout          = var.lambda_timeout

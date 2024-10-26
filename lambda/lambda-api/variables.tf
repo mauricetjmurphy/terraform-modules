@@ -34,6 +34,29 @@ variable "managedby" {
   description = "ManagedBy, eg 'Gemtech Solutions'."
 }
 
+variable "description" {
+  type        = string
+  default     = ""
+  description = "Description of what your Lambda Function does."
+}
+
+variable "memory_size" {
+  type        = number
+  default     = 128
+  description = "Amount of memory in MB your Lambda Function can use at runtime. Defaults to 128."
+}
+
+variable "handler" {
+  type        = string
+  description = "The function entrypoint in your code."
+}
+
+variable "runtime" {
+  type        = string
+  default     = "python3.9"
+  description = "Runtimes."
+}
+
 variable "enable" {
   type        = bool
   default     = true
