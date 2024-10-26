@@ -26,10 +26,5 @@ resource "aws_lambda_function" "main" {
   timeout          = var.lambda_timeout
 }
 
-resource "aws_iam_role" "lambda_exec" {
-  name               = "${var.lambda_function_name}-role"
-  assume_role_policy = data.aws_iam_policy_document.assume_role_policy.json
-}
-
 
 
