@@ -161,6 +161,8 @@ resource "aws_apigatewayv2_stage" "this" {
     responseLength     = "$context.responseLength"
   })
   }
+
+  depends_on = [aws_cloudwatch_log_group.this]
 }
 
 resource "aws_apigatewayv2_deployment" "this" {
@@ -185,8 +187,10 @@ resource "aws_apigatewayv2_deployment" "this" {
 resource "aws_cloudwatch_log_group" "this" {
   count = var.create_log_group ? 1 : 0
 
-  name              = "/aws/apigateway/${aws_apigatewayv2_stage.this[0].name}"
+  # Define the log group name independently
+  name              = "/aws/apigateway/${var.stage_name}"
   retention_in_days = var.log_group_retention_in_days
 
   tags = var.tags
 }
+
