@@ -42,8 +42,9 @@ resource "aws_apigatewayv2_route" "this" {
   authorization_type = each.value.authorization_type
   authorizer_id      = try(aws_apigatewayv2_authorizer.this[each.value.authorizer_key].id, null)
 
-  target = "integrations/${aws_apigatewayv2_integration.this[each.key].id}"
+  target = try("integrations/${aws_apigatewayv2_integration.this[each.key].id}", null)
 }
+
 
 resource "aws_apigatewayv2_integration" "this" {
   for_each = { for k, v in var.routes : k => v.integration if v.integration != null }
