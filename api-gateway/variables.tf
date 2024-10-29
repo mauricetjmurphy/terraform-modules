@@ -128,19 +128,4 @@ variable "tags" {
   type        = map(string)
 }
 
-variable "stage_log_format" {
-  description = "The format for API Gateway stage access logs."
-  type        = string
-  default     = jsonencode({
-    requestId          = "$context.requestId",
-    ip                 = "$context.identity.sourceIp",
-    caller             = "$context.identity.caller",
-    user               = "$context.identity.user",
-    requestTime        = "$context.requestTime",
-    httpMethod         = "$context.httpMethod",
-    resourcePath       = "$context.resourcePath",
-    status             = "$context.status",
-    protocol           = "$context.protocol",
-    responseLength     = "$context.responseLength"
-  })
-}
+
