@@ -56,7 +56,7 @@ resource "aws_apigatewayv2_integration" "this" {
   payload_format_version = each.value.payload_format_version
 
   dynamic "response_parameters" {
-    for_each = each.value.response_parameters != null ? [each.value.response_parameters] : []
+    for_each = try(each.value.response_parameters, []) != null ? [each.value.response_parameters] : []
 
     content {
       status_code = response_parameters.value.status_code
