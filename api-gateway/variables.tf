@@ -36,20 +36,23 @@ variable "cors_configuration" {
 variable "routes" {
   description = "Map of routes and integrations"
   type = map(object({
-    authorization_type   = string
-    authorizer_key       = string
-    authorization_scopes = list(string)
+    authorization_type   = string              # Required by default
+    authorizer_key       = string              # Optional field
+    authorization_scopes = list(string)        # Optional field with an empty list as default
+
     integration = object({
       uri                     = string
       timeout_milliseconds    = number
       payload_format_version  = string
-      response_parameters     = object({
+      response_parameters     = optional(object({
         status_code = number
         mappings    = map(string)
-      })
+      }), null) # Making response_parameters optional
     })
   }))
+  default = {}
 }
+
 
 variable "authorizers" {
   description = "Map of authorizers"
