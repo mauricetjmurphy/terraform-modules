@@ -1,58 +1,181 @@
-##----------------------------------------------------------------------------------
-## Labels module callled that will be used for naming and tags.
-##----------------------------------------------------------------------------------
-module "labels" {
-  source  = "git::ssh://git@github.com:mauricetjmurphy/terraform-modules.git//labels"
-  name        = var.name
-  environment = var.environment
-  managedby   = var.managedby
-  label_order = var.label_order
-  repository  = var.repository
+locals {
+  create_routes_and_integrations = var.create && var.create_routes_and_integrations
 }
 
-##----------------------------------------------------------------------------------
-## Api-gateway module.
-##----------------------------------------------------------------------------------
+################################################################################
+# API Gateway v2 (HTTP API)
+################################################################################
 
-resource "aws_api_gateway_rest_api" "api" {
-  name        = var.api_name
-  description = var.api_description
+resource "aws_apigatewayv2_api" "this" {
+  count = var.create ? 1 : 0
+
+  name                         = var.name
+  protocol_type                = "HTTP"
+  route_key                    = null  # No default route key required for now
+  fail_on_warnings             = true
+  description                  = var.description
+  tags                         = var.tags
+
+  dynamic "cors_configuration" {
+    for_each = var.cors_configuration != null ? [var.cors_configuration] : []
+
+    content {
+      allow_credentials = cors_configuration.value.allow_credentials
+      allow_headers     = cors_configuration.value.allow_headers
+      allow_methods     = cors_configuration.value.allow_methods
+      allow_origins     = cors_configuration.value.allow_origins
+      expose_headers    = cors_configuration.value.expose_headers
+      max_age           = cors_configuration.value.max_age
+    }
+  }
 }
 
-# Loop through each Lambda function to create resources and methods
-resource "aws_api_gateway_resource" "proxy" {
-  for_each = var.lambda_function_details
+################################################################################
+# Routes and Integrations for Message and Booking
+################################################################################
 
-  rest_api_id = aws_api_gateway_rest_api.api.id
-  parent_id   = aws_api_gateway_rest_api.api.root_resource_id
-  path_part   = each.key  # Use the key (e.g., "email", "booking") as the base path
+resource "aws_apigatewayv2_route" "this" {
+  for_each = { for k, v in var.routes : k => v if local.create_routes_and_integrations }
+
+  api_id       = aws_apigatewayv2_api.this[0].id
+  route_key    = each.key
+  authorization_type = each.value.authorization_type
+  authorizer_id      = try(aws_apigatewayv2_authorizer.this[each.value.authorizer_key].id, null)
+
+  target = "integrations/${aws_apigatewayv2_integration.this[each.key].id}"
 }
 
-resource "aws_api_gateway_resource" "proxy_sub" {
-  for_each = var.lambda_function_details
+resource "aws_apigatewayv2_integration" "this" {
+  for_each = { for k, v in var.routes : k => v.integration if local.create_routes_and_integrations }
 
-  rest_api_id = aws_api_gateway_rest_api.api.id
-  parent_id   = aws_api_gateway_resource.proxy[each.key].id
-  path_part   = "{proxy+}"  # Allows capturing all sub-paths
+  api_id                = aws_apigatewayv2_api.this[0].id
+  integration_uri       = each.value.uri
+  integration_method    = "POST"
+  integration_type      = "AWS_PROXY"
+  timeout_milliseconds  = each.value.timeout_milliseconds
+  payload_format_version = each.value.payload_format_version
+
+  dynamic "response_parameters" {
+    for_each = each.value.response_parameters != null ? [each.value.response_parameters] : []
+
+    content {
+      status_code = response_parameters.value.status_code
+      mappings    = response_parameters.value.mappings
+    }
+  }
 }
 
-resource "aws_api_gateway_method" "any" {
-  for_each = var.lambda_function_details
+################################################################################
+# Authorizers (Optional)
+################################################################################
 
-  rest_api_id = aws_api_gateway_rest_api.api.id
-  resource_id = aws_api_gateway_resource.proxy_sub[each.key].id
-  http_method = "ANY"  # Allow any HTTP method
-  authorization = "NONE"
+resource "aws_apigatewayv2_authorizer" "this" {
+  for_each = { for k, v in var.authorizers : k => v if var.create }
+
+  api_id = aws_apigatewayv2_api.this[0].id
+
+  authorizer_type                   = each.value.authorizer_type
+  identity_sources                  = each.value.identity_sources
+  name                              = each.key
+
+  dynamic "jwt_configuration" {
+    for_each = each.value.jwt_configuration != null ? [each.value.jwt_configuration] : []
+
+    content {
+      audience = jwt_configuration.value.audience
+      issuer   = jwt_configuration.value.issuer
+    }
+  }
 }
 
-resource "aws_api_gateway_integration" "lambda_proxy" {
-  for_each = var.lambda_function_details
+################################################################################
+# Domain Name (Optional)
+################################################################################
 
-  rest_api_id = aws_api_gateway_rest_api.api.id
-  resource_id = aws_api_gateway_resource.proxy_sub[each.key].id
-  http_method = aws_api_gateway_method.any[each.key].http_method
+resource "aws_apigatewayv2_domain_name" "this" {
+  count = var.create_domain_name ? 1 : 0
 
-  integration_http_method = "POST"
-  type                    = "AWS_PROXY"
-  uri                     = aws_lambda_function.function[each.key].invoke_arn  # Ensure the correct reference to the function ARN
+  domain_name = var.domain_name
+
+  domain_name_configuration {
+    certificate_arn = var.domain_name_certificate_arn
+    endpoint_type   = "REGIONAL"
+    security_policy = "TLS_1_2"
+  }
+
+  tags = var.tags
+}
+
+################################################################################
+# Route53 Record for Domain Name (Optional)
+################################################################################
+
+data "aws_route53_zone" "this" {
+  count = var.create_domain_name && var.create_domain_records ? 1 : 0
+  name  = var.hosted_zone_name
+}
+
+resource "aws_route53_record" "this" {
+  for_each = var.create_domain_name && var.create_domain_records ? {
+    "${var.domain_name}-A" = {
+      name = var.domain_name
+      type = "A"
+    }
+  } : {}
+
+  zone_id = data.aws_route53_zone.this[0].zone_id
+  name    = each.value.name
+  type    = each.value.type
+
+  alias {
+    name                   = aws_apigatewayv2_domain_name.this[0].domain_name_configuration[0].target_domain_name
+    zone_id                = aws_apigatewayv2_domain_name.this[0].domain_name_configuration[0].hosted_zone_id
+    evaluate_target_health = false
+  }
+}
+
+################################################################################
+# Stage and Deployment
+################################################################################
+
+resource "aws_apigatewayv2_stage" "this" {
+  count = var.create_stage ? 1 : 0
+
+  api_id = aws_apigatewayv2_api.this[0].id
+  name   = var.stage_name
+
+  auto_deploy = true
+
+  access_log_settings {
+    destination_arn = aws_cloudwatch_log_group.this.arn
+    format          = var.stage_log_format
+  }
+}
+
+resource "aws_apigatewayv2_deployment" "this" {
+  count = var.create_stage && var.deploy_stage ? 1 : 0
+
+  api_id = aws_apigatewayv2_api.this[0].id
+
+  triggers = {
+    redeployment = sha1(jsonencode(aws_apigatewayv2_route.this))
+  }
+
+  depends_on = [
+    aws_apigatewayv2_integration.this,
+    aws_apigatewayv2_route.this
+  ]
+}
+
+################################################################################
+# CloudWatch Log Group for Stage
+################################################################################
+
+resource "aws_cloudwatch_log_group" "this" {
+  count = var.create_log_group ? 1 : 0
+
+  name              = "/aws/apigateway/${aws_apigatewayv2_stage.this[0].name}"
+  retention_in_days = var.log_group_retention_in_days
+
+  tags = var.tags
 }
