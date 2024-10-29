@@ -64,17 +64,6 @@ variable "authorizers" {
   default = {}
 }
 
-variable "domain_name" {
-  description = "The custom domain name for the API Gateway"
-  type        = string
-  default     = ""
-}
-
-variable "domain_name_certificate_arn" {
-  description = "ARN of the certificate for the domain"
-  type        = string
-}
-
 variable "create_domain_name" {
   description = "Whether to create a custom domain name"
   type        = bool
