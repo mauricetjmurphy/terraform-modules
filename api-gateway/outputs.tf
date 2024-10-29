@@ -1,4 +1,5 @@
+
 output "api_url" {
   description = "The base URL of the API Gateway"
-  value       = "${aws_apigatewayv2_api.this.invoke_url}"
+  value       = "${aws_apigatewayv2_api.this[count.index].api_endpoint}" 
 }
