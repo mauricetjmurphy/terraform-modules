@@ -46,14 +46,14 @@ resource "aws_apigatewayv2_route" "this" {
 }
 
 resource "aws_apigatewayv2_integration" "this" {
-  for_each = { for k, v in var.routes : k => v.integration if local.create_routes_and_integrations }
+  for_each = { for k, v in var.routes : k => v.integration if v.integration != null }
 
   api_id                = aws_apigatewayv2_api.this[0].id
-  integration_uri       = each.value.uri
+  integration_uri       = try(each.value.uri, null)
   integration_method    = "POST"
   integration_type      = "AWS_PROXY"
-  timeout_milliseconds  = each.value.timeout_milliseconds
-  payload_format_version = each.value.payload_format_version
+  timeout_milliseconds  = try(each.value.timeout_milliseconds, null)
+  payload_format_version = try(each.value.payload_format_version, null)
 
   dynamic "response_parameters" {
     for_each = try(each.value.response_parameters, []) != null ? [each.value.response_parameters] : []
