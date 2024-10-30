@@ -7,7 +7,7 @@ resource "aws_lambda_permission" "allow_apigateway_invoke" {
   action        = "lambda:InvokeFunction"
   function_name = aws_lambda_function.main[count.index].function_name
   principal     = "apigateway.amazonaws.com"
-  source_arn    = "arn:aws:execute-api:us-east-1:${data.aws_caller_identity.current.account_id}:${data.aws_api_gateway_rest_api.my_api.id}/*/*/*"
+  source_arn    = "arn:aws:execute-api:us-east-1:${data.aws_caller_identity.current.account_id}:${data.aws_apigatewayv2_api.my_http_api.id}/*/*/*"
 }
 
 resource "aws_iam_role" "lambda_exec" {
