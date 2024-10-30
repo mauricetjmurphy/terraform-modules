@@ -25,6 +25,17 @@ resource "aws_lambda_function" "main" {
   source_code_hash = filebase64sha256("lambda-package/main.zip")
   role             = aws_iam_role.lambda_exec.arn
   timeout          = var.lambda_timeout
+
+  depends_on = [aws_cloudwatch_log_group.lambda_log_group]
+}
+
+resource "aws_cloudwatch_log_group" "lambda_log_group" {
+  count = var.enable ? 1 : 0
+  
+  name              = "/aws/lambda/${var.lambda_function_name}"
+  retention_in_days = 30
+
+  tags = module.labels.tags
 }
 
 
