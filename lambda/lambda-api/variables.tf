@@ -74,7 +74,7 @@ variable "lambda_timeout" {
   default     = 10
 }
 
-variable "api_gateway_id" {
-  description = "The API Gateway ID."
+variable "api_gateway_name" {
+  description = "The API Gateway Name."
 }
 
