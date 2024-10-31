@@ -74,6 +74,26 @@ resource "aws_iam_policy" "dynamodb_access" {
   })
 }
 
+# SES Policy for Lambda Function
+resource "aws_iam_policy" "ses_access" {
+  name        = "${var.lambda_function_name}-ses-access"
+  description = "Policy to allow Lambda functions to send emails with SES"
+  
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = [
+          "ses:SendEmail",       # Allows sending email
+          "ses:SendRawEmail"     # Allows sending raw email (optional for HTML and attachments)
+        ]
+        Resource = "*"  # Use specific SES identities ARNs if you want to restrict to certain sender emails
+      }
+    ]
+  })
+}
+
 resource "aws_iam_role_policy_attachment" "attach_lambda_logging" {
   policy_arn = aws_iam_policy.lambda_logging.arn
   role       = aws_iam_role.lambda_exec.name
@@ -86,5 +106,10 @@ resource "aws_iam_role_policy_attachment" "attach_s3_access" {
 
 resource "aws_iam_role_policy_attachment" "attach_dynamodb_access" {
   policy_arn = aws_iam_policy.dynamodb_access.arn
+  role       = aws_iam_role.lambda_exec.name
+}
+
+resource "aws_iam_role_policy_attachment" "attach_ses_access" {
+  policy_arn = aws_iam_policy.ses_access.arn
   role       = aws_iam_role.lambda_exec.name
 }
