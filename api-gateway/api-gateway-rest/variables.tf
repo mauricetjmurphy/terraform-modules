@@ -15,11 +15,6 @@ variable "api_description" {
   default     = "API Gateway with Lambda Proxy Integration"
 }
 
-variable "lambda_arn" {
-  description = "The ARN of the Lambda function to integrate"
-  type        = string
-}
-
 variable "stage_name" {
   description = "The name of the stage for deployment"
   type        = string
