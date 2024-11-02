@@ -2,7 +2,7 @@
 ## Labels module callled that will be used for naming and tags.
 ##-----------------------------------------------------------------------------
 module "labels" {
-  source      = "git::ssh://git@github.com/mauricetjmurphy/gemtech-terraform-modules.git//labels"
+  source      = "../../labels"
   name        = var.name
   repository  = var.repository
   environment = var.environment
