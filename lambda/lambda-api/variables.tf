@@ -4,6 +4,12 @@ variable "name" {
   description = "Name  (e.g. `app` or `cluster`)."
 }
 
+variable "lambda_exec_role_arn" {
+  type        = string
+  default     = ""
+  description = "Lambda execution iam role"
+}
+
 variable "repository" {
   type        = string
   default     = "https://github.com/mauricetjmurphy/terraform-modules/tree/master/lambda"

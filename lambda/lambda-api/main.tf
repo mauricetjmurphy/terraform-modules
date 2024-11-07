@@ -23,7 +23,7 @@ resource "aws_lambda_function" "main" {
   runtime          = var.runtime
   filename         = "lambda-package/main.zip"
   source_code_hash = filebase64sha256("lambda-package/main.zip")
-  role             = aws_iam_role.lambda_exec.arn
+  role             = var.lambda_exec_role_arn
   timeout          = var.lambda_timeout
 
   depends_on = [aws_cloudwatch_log_group.lambda_log_group]
