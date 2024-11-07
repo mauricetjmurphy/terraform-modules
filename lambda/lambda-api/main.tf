@@ -26,6 +26,11 @@ resource "aws_lambda_function" "main" {
   role             = var.lambda_exec_role_arn
   timeout          = var.lambda_timeout
 
+  # Environment Variables
+  environment {
+    variables = var.lambda_env_vars
+  }
+
   depends_on = [aws_cloudwatch_log_group.lambda_log_group]
 }
 

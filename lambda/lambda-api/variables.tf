@@ -80,4 +80,9 @@ variable "lambda_timeout" {
   default     = 10
 }
 
+variable "lambda_env_vars" {
+  description = "Environment variables for the Lambda function"
+  type        = map(string)
+  default     = {}
+}
 
