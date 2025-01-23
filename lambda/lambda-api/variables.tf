@@ -1,3 +1,9 @@
+variable "region" {
+  type        = string
+  default     = "us-east-1"
+  description = "AWS region"
+}
+
 variable "name" {
   type        = string
   default     = ""
@@ -86,3 +92,18 @@ variable "lambda_env_vars" {
   default     = {}
 }
 
+variable "statement_ids" {
+  type        = list(string)
+  description = "List of statement IDs for Lambda permissions."
+  default     = []
+}
+
+variable "iam_actions" {
+  type        = list(string)
+  description = "IAM actions to attach to the Lambda execution role"
+  default     = [
+    "logs:CreateLogStream",
+    "logs:CreateLogGroup",
+    "logs:PutLogEvents"
+  ]
+}

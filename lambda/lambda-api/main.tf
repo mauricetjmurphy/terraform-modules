@@ -43,5 +43,34 @@ resource "aws_cloudwatch_log_group" "lambda_log_group" {
   tags = module.labels.tags
 }
 
+resource "aws_lambda_permission" "lambda_permissions" {
+  for_each = toset(var.statement_ids)
+
+  statement_id  = each.value
+  action        = "lambda:InvokeFunction"
+  function_name = aws_lambda_function.main[each.key].function_name
+  principal     = "events.amazonaws.com"
+}
+
+resource "aws_iam_policy" "lambda_logs_policy" {
+  name   = "${var.name}-lambda-logs-policy"
+  description = "IAM policy for Lambda to write to CloudWatch logs"
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Action   = var.iam_actions
+        Effect   = "Allow"
+        Resource = "arn:aws:logs:${var.region}:${data.aws_caller_identity.current.account_id}:*"
+      }
+    ]
+  })
+}
+
+resource "aws_iam_role_policy_attachment" "lambda_logs_attachment" {
+  policy_arn = aws_iam_policy.lambda_logs_policy.arn
+  role       = var.lambda_exec_role_arn
+}
 
 
