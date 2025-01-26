@@ -13,16 +13,6 @@ output "rds_arn" {
   value       = aws_db_instance.mysql.arn
 }
 
-output "specific_vpc_cidr_block" {
-  description = "CIDR block for the specific VPC"
-  value       = data.aws_vpc.specific_vpc.cidr_block
-}
-
-output "specific_vpc_cidr_blocks" {
-  description = "All CIDR blocks associated with the specific VPC"
-  value       = data.aws_vpc.specific_vpc.cidr_block_association_set
-}
-
 output "rds_connection_url" {
   description = "Connection URL for the RDS instance"
   value       = "mysql://${aws_db_instance.mysql.username}:${random_password.db_password.result}@${aws_db_instance.mysql.endpoint}:${aws_db_instance.mysql.port}/${aws_db_instance.mysql.db_name}"
