@@ -72,10 +72,10 @@ resource "aws_iam_role_policy_attachment" "rds_monitoring_policy" {
 ##-----------------------------------------------------------------------------
 
 resource "aws_subnet" "rds_subnets" {
-  count = length(var.azs) # Create one subnet per AZ
+  count = length(var.azs)
 
   vpc_id                  = var.vpc_id
-  cidr_block              = cidrsubnet(var.base_cidr, 8, count.index) 
+  cidr_block              = cidrsubnet(var.base_cidr, 4, count.index)
   availability_zone       = var.azs[count.index]
   map_public_ip_on_launch = false
 

@@ -85,8 +85,9 @@ variable "azs" {
 }
 
 variable "base_cidr" {
-  description = "Base CIDR block for creating subnets (e.g., 10.0.0.0/16)"
+  description = "Base CIDR block for creating subnets"
   type        = string
+  default     = "172.31.0.0/16"
 }
 
 variable "tags" {
