@@ -110,7 +110,7 @@ resource "aws_security_group" "rds_sg" {
     from_port   = 3306
     to_port     = 3306
     protocol    = "tcp"
-    cidr_blocks = data.aws_vpc.specific_vpc.cidr_block_association_set
+    cidr_blocks = aws_subnet.rds_subnets[*].cidr_block
   }
 
   egress {
