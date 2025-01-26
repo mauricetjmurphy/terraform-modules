@@ -9,7 +9,7 @@ provider "aws" {
 resource "random_password" "db_password" {
   length           = 16                 # Length of the password
   special          = true               # Include special characters
-  override_special = "!@#$%^&*()-_+=~"  # Define the special characters allowed
+  override_special = "!#$%^&*()-_+=~"   # Allowed special characters for AWS RDS
   upper            = true               # Include uppercase characters
   lower            = true               # Include lowercase characters
   numeric          = true               # Include numbers
