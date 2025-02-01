@@ -17,7 +17,7 @@ module "labels" {
 ## - Handles environment variables and execution role.
 ##----------------------------------------------------------------------------- 
 resource "aws_lambda_function" "main" {
-  count            = var.enable ? 1 : 0
+  for_each         = var.enable ? { lambda = var.lambda_function_name } : {}
   description      = var.description
   function_name    = var.lambda_function_name
   memory_size      = var.memory_size
@@ -67,9 +67,10 @@ resource "aws_lambda_permission" "lambda_permissions" {
 
   statement_id  = each.value
   action        = "lambda:InvokeFunction"
-  function_name = aws_lambda_function.main[each.key].function_name
+  function_name = aws_lambda_function.main["lambda"].function_name
   principal     = "events.amazonaws.com"
 }
+
 
 ##----------------------------------------------------------------------------- 
 ## IAM Policy for Lambda to write logs to CloudWatch.
