@@ -12,62 +12,8 @@ module "labels" {
 }
 
 ##----------------------------------------------------------------------------- 
-## IAM Role for Lambda Execution
-## - This role is created once and used for all Lambda functions.
-##----------------------------------------------------------------------------- 
-resource "aws_iam_role" "lambda_exec_role" {
-  name = "${var.name}-lambda-exec-role"
-
-  assume_role_policy = jsonencode({
-    Version = "2012-10-17"
-    Statement = [{
-      Effect = "Allow"
-      Principal = {
-        Service = "lambda.amazonaws.com"
-      }
-      Action = "sts:AssumeRole"
-    }]
-  })
-}
-
-##----------------------------------------------------------------------------- 
-## IAM Policy for CloudWatch Logs
-##----------------------------------------------------------------------------- 
-resource "aws_iam_policy" "lambda_logs_policy" {
-  name        = "${var.name}-lambda-logs-policy"
-  description = "IAM policy for Lambda to write to CloudWatch logs"
-
-  policy = jsonencode({
-    Version = "2012-10-17"
-    Statement = [{
-      Action   = ["logs:CreateLogGroup", "logs:CreateLogStream", "logs:PutLogEvents"]
-      Effect   = "Allow"
-      Resource = "arn:aws:logs:${var.region}:${data.aws_caller_identity.current.account_id}:*"
-    }]
-  })
-}
-
-##----------------------------------------------------------------------------- 
-## Attach IAM Policies to the Lambda Execution Role
-##----------------------------------------------------------------------------- 
-resource "aws_iam_role_policy_attachment" "lambda_logs_attachment" {
-  policy_arn = aws_iam_policy.lambda_logs_policy.arn
-  role       = aws_iam_role.lambda_exec_role.name
-}
-
-resource "aws_iam_role_policy_attachment" "lambda_s3_attachment" {
-  policy_arn = var.lambda_s3_policy_arn
-  role       = aws_iam_role.lambda_exec_role.name
-}
-
-resource "aws_iam_role_policy_attachment" "lambda_rds_attachment" {
-  policy_arn = var.lambda_rds_policy_arn
-  role       = aws_iam_role.lambda_exec_role.name
-}
-
-##----------------------------------------------------------------------------- 
 ## AWS Lambda Function Resource
-## - Supports dynamic creation of multiple Lambda functions.
+## - Uses IAM role passed from root module
 ##----------------------------------------------------------------------------- 
 resource "aws_lambda_function" "main" {
   function_name    = var.lambda_function_name
@@ -75,7 +21,7 @@ resource "aws_lambda_function" "main" {
   memory_size      = var.memory_size
   handler          = var.handler
   runtime          = var.runtime
-  role             = aws_iam_role.lambda_exec_role.arn
+  role             = var.lambda_exec_role_arn  # IAM role provided by root module
   timeout          = var.lambda_timeout
 
   # Conditional logic for deployment method

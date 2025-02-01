@@ -128,18 +128,3 @@ variable "lambda_exec_role_arn" {
   type        = string
   description = "IAM execution role ARN for the Lambda function."
 }
-
-variable "lambda_logs_policy_arn" {
-  type        = string
-  description = "IAM policy ARN for CloudWatch Logs."
-}
-
-variable "lambda_s3_policy_arn" {
-  type        = string
-  description = "IAM policy ARN for S3 access."
-}
-
-variable "lambda_rds_policy_arn" {
-  type        = string
-  description = "IAM policy ARN for RDS access."
-}
