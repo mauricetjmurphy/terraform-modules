@@ -4,6 +4,36 @@ variable "name" {
   description = "Name (e.g. `app` or `cluster`)."
 }
 
+variable "repository" {
+  type        = string
+  default     = "https://github.com/mauricetjmurphy/terraform-modules/tree/master/lambda"
+  description = "Terraform current module repo"
+}
+
+variable "environment" {
+  type        = string
+  default     = ""
+  description = "Environment (e.g. `prod`, `dev`, `staging`)."
+}
+
+variable "label_order" {
+  type        = list(any)
+  default     = ["name", "environment"]
+  description = "Label order, e.g. `name`,`application`."
+}
+
+variable "attributes" {
+  type        = list(any)
+  default     = []
+  description = "Additional attributes (e.g. `1`)."
+}
+
+variable "managedby" {
+  type        = string
+  default     = "mauricetjmurphy@gmail.com"
+  description = "ManagedBy, eg 'Gemtech Solutions'."
+}
+
 variable "s3_bucket" {
   type        = string
   description = "The S3 bucket where the Lambda function code is stored"
@@ -23,12 +53,6 @@ variable "use_s3" {
 variable "lambda_exec_role_arn" {
   type        = string
   description = "IAM execution role ARN for the Lambda function."
-}
-
-variable "environment" {
-  type        = string
-  default     = ""
-  description = "Environment (e.g. `prod`, `dev`, `staging`)."
 }
 
 variable "description" {
