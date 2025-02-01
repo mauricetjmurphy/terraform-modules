@@ -10,6 +10,22 @@ variable "name" {
   description = "Name  (e.g. `app` or `cluster`)."
 }
 
+variable "s3_bucket" {
+  type        = string
+  description = "The S3 bucket where the Lambda function code is stored"
+}
+
+variable "s3_key" {
+  type        = string
+  description = "The S3 key (path) for the Lambda function package"
+}
+
+variable "use_s3" {
+  type        = bool
+  default     = false
+  description = "Set to true to deploy from S3, false to use local file"
+}
+
 variable "lambda_exec_role_arn" {
   type        = string
   default     = ""

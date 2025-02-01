@@ -21,10 +21,16 @@ resource "aws_lambda_function" "main" {
   memory_size      = var.memory_size
   handler          = var.handler
   runtime          = var.runtime
-  filename         = "lambda-package/main.zip"
-  source_code_hash = filebase64sha256("lambda-package/main.zip")
   role             = var.lambda_exec_role_arn
   timeout          = var.lambda_timeout
+
+  # Conditional logic to switch between local file and S3 deployment
+  filename         = var.use_s3 ? null : "lambda-package/main.zip"
+  s3_bucket        = var.use_s3 ? var.s3_bucket : null
+  s3_key           = var.use_s3 ? var.s3_key : null
+
+  # Hashing for deployment consistency
+  source_code_hash = var.use_s3 ? null : filebase64sha256("lambda-package/main.zip")
 
   # Environment Variables
   environment {
