@@ -1,4 +1,4 @@
-output "lambda_arns" {
-  value       = { for key, lambda_instance in module.lambda : key => lambda_instance.arn_map }
+output "arn_map" {
+  value = { for key, fn in aws_lambda_function.main : key => fn.arn }
   description = "A mapping of Lambda function names to their ARNs."
 }
