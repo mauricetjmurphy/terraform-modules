@@ -39,8 +39,13 @@ resource "aws_lambda_function" "main" {
     variables = var.lambda_env_vars
   }
 
-  # Ensure CloudWatch log group is created before Lambda execution
-  depends_on = [aws_cloudwatch_log_group.lambda_log_group]
+ # Ensure IAM Role and Policies exist before Lambda function
+  depends_on = [
+    aws_cloudwatch_log_group.lambda_log_group,
+    aws_iam_role_policy_attachment.lambda_logs_attachment,
+    aws_iam_role_policy_attachment.lambda_s3_attachment,
+    aws_iam_role_policy_attachment.lambda_rds_attachment
+  ]
 }
 
 ##----------------------------------------------------------------------------- 
@@ -72,6 +77,7 @@ resource "aws_lambda_permission" "lambda_permissions" {
 }
 
 
+
 ##----------------------------------------------------------------------------- 
 ## IAM Policy for Lambda to write logs to CloudWatch.
 ## - Allows Lambda functions to create log groups, log streams, and put log events.
@@ -97,6 +103,18 @@ resource "aws_iam_policy" "lambda_logs_policy" {
 ## - Attaches the logging policy to the Lambda execution role.
 ##----------------------------------------------------------------------------- 
 resource "aws_iam_role_policy_attachment" "lambda_logs_attachment" {
-  policy_arn = aws_iam_policy.lambda_logs_policy.arn
+  policy_arn = var.lambda_logs_policy_arn
   role       = var.lambda_exec_role_arn
 }
+
+resource "aws_iam_role_policy_attachment" "lambda_s3_attachment" {
+  policy_arn = var.lambda_s3_policy_arn
+  role       = var.lambda_exec_role_arn
+}
+
+resource "aws_iam_role_policy_attachment" "lambda_rds_attachment" {
+  policy_arn = var.lambda_rds_policy_arn
+  role       = var.lambda_exec_role_arn
+}
+
+
