@@ -119,7 +119,7 @@ resource "aws_api_gateway_method_response" "rest_api_method_response" {
   http_method       = aws_api_gateway_method.rest_api_method[each.key].http_method
   status_code       = each.value.status_code
   response_models   = each.value.response_models
-  response_parameters = each.value.response_parameters
+  response_parameters = length(each.value.response_parameters) > 0 ? each.value.response_parameters : {}
 }
 
 ##----------------------------------------------------------------------------------
