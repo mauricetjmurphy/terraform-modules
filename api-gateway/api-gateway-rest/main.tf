@@ -136,6 +136,18 @@ resource "aws_api_gateway_integration_response" "rest_api_integration_response" 
 
   depends_on = [
     aws_api_gateway_method.rest_api_method,
-    aws_api_gateway_integration.rest_api_integration
+    aws_api_gateway_integration.rest_api_integration,
+    aws_api_gateway_method_response.rest_api_method_response
   ]
 }
+
+resource "aws_lambda_permission" "api_gateway_lambda_permission" {
+  for_each      = var.api_resources
+  statement_id  = "AllowAPIGatewayInvoke-${each.key}"
+  action        = "lambda:InvokeFunction"
+  function_name = each.value.lambda_arn
+  principal     = "apigateway.amazonaws.com"
+
+  source_arn = "${aws_api_gateway_rest_api.rest_api.execution_arn}/*/*"
+}
+
