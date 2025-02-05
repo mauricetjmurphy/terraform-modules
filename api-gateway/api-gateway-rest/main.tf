@@ -91,6 +91,42 @@ resource "aws_api_gateway_integration" "rest_api_integration" {
 }
 
 ##----------------------------------------------------------------------------------
+## API Gateway Proxy Method for Each Resource
+##----------------------------------------------------------------------------------
+resource "aws_api_gateway_resource" "proxy_resources" {
+  for_each    = var.api_resources
+  rest_api_id = aws_api_gateway_rest_api.rest_api.id
+  parent_id   = aws_api_gateway_resource.api_resources[each.key].id
+  path_part   = "{proxy+}"
+}
+
+##----------------------------------------------------------------------------------
+## API Proxy Methods for Each Proxy Resource
+##----------------------------------------------------------------------------------
+resource "aws_api_gateway_method" "proxy_methods" {
+  for_each      = var.api_resources
+  rest_api_id   = aws_api_gateway_rest_api.rest_api.id
+  resource_id   = aws_api_gateway_resource.proxy_resources[each.key].id
+  http_method   = "ANY"
+  authorization = var.authorization
+}
+
+##----------------------------------------------------------------------------------
+## Integrate Proxy Methods for Each Proxy Resource
+##----------------------------------------------------------------------------------
+resource "aws_api_gateway_integration" "proxy_integration" {
+  for_each                = var.api_resources
+  rest_api_id             = aws_api_gateway_rest_api.rest_api.id
+  resource_id             = aws_api_gateway_resource.proxy_resources[each.key].id
+  http_method             = aws_api_gateway_method.proxy_methods[each.key].http_method
+  integration_http_method = var.http_method
+  type                    = var.gateway_integration_type
+  timeout_milliseconds    = var.timeout_milliseconds
+  uri                     = each.value.integration_uri
+}
+
+
+##----------------------------------------------------------------------------------
 ## API Gateway Method Response
 ##----------------------------------------------------------------------------------
 resource "aws_api_gateway_method_response" "rest_api_method_response" {
@@ -148,7 +184,9 @@ resource "aws_api_gateway_deployment" "api_deployment" {
     aws_api_gateway_method.rest_api_method,
     aws_api_gateway_method_response.rest_api_method_response,
     aws_api_gateway_integration.rest_api_integration,
-    aws_api_gateway_integration_response.rest_api_integration_response
+    aws_api_gateway_integration_response.rest_api_integration_response,
+    aws_api_gateway_method.proxy_methods,
+    aws_api_gateway_integration.proxy_integration 
   ]
 }
 
