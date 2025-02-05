@@ -51,10 +51,17 @@ variable "rest_variables" {
 }
 
 variable "api_resources" {
-  type        = map(map(string))
-  default     = {}
-  description = "flag to control of resources path"
+  type = map(object({
+    path_part           = string
+    http_method         = string
+    integration_uri     = string
+    lambda_arn          = optional(string)
+    status_code         = string
+    response_models     = map(string)
+    response_parameters = optional(map(string), {})
+  }))
 }
+
 
 variable "authorization" {
   type        = string
