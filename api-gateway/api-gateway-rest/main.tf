@@ -48,25 +48,6 @@ EOF
 }
 
 ##----------------------------------------------------------------------------------
-## Deployment & Stage
-##----------------------------------------------------------------------------------
-resource "aws_api_gateway_deployment" "api_deployment" {
-  rest_api_id = aws_api_gateway_rest_api.rest_api.id
-  triggers = {
-    redeployment = timestamp()
-  }
-  lifecycle {
-    create_before_destroy = true
-  }
-}
-
-resource "aws_api_gateway_stage" "stage" {
-  stage_name    = var.stage_name
-  rest_api_id   = aws_api_gateway_rest_api.rest_api.id
-  deployment_id = aws_api_gateway_deployment.api_deployment.id
-}
-
-##----------------------------------------------------------------------------------
 ## Create API Resources Dynamically
 ##----------------------------------------------------------------------------------
 resource "aws_api_gateway_resource" "api_resources" {
@@ -151,3 +132,28 @@ resource "aws_lambda_permission" "api_gateway_lambda_permission" {
   source_arn = "${aws_api_gateway_rest_api.rest_api.execution_arn}/*/*"
 }
 
+##----------------------------------------------------------------------------------
+## Deployment & Stage
+##----------------------------------------------------------------------------------
+resource "aws_api_gateway_deployment" "api_deployment" {
+  rest_api_id = aws_api_gateway_rest_api.rest_api.id
+  triggers = {
+    redeployment = timestamp()
+  }
+  lifecycle {
+    create_before_destroy = true
+  }
+
+   depends_on = [
+    aws_api_gateway_method.rest_api_method,
+    aws_api_gateway_method_response.rest_api_method_response,
+    aws_api_gateway_integration.rest_api_integration,
+    aws_api_gateway_integration_response.rest_api_integration_response
+  ]
+}
+
+resource "aws_api_gateway_stage" "stage" {
+  stage_name    = var.stage_name
+  rest_api_id   = aws_api_gateway_rest_api.rest_api.id
+  deployment_id = aws_api_gateway_deployment.api_deployment.id
+}
