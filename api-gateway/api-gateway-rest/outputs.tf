@@ -1,6 +1,6 @@
 output "api_url" {
   description = "The base URL of the API Gateway"
-  value       = "${aws_api_gateway_rest_api.this.execution_arn}/${var.stage_name}"
+  value       = "${aws_api_gateway_rest_api.rest_api.execution_arn}/${var.stage_name}"
 }
 
 output "api_id" {
