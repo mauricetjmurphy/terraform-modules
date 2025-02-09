@@ -75,8 +75,7 @@ resource "aws_iam_policy" "lambda_logging" {
   })
 }
 
-# Attach Logging Policy to Lambda Execution Role
 resource "aws_iam_role_policy_attachment" "lambda_logging_attachment" {
   policy_arn = aws_iam_policy.lambda_logging.arn
-  role       = var.lambda_exec_role_arn
+  role       = element(split("/", var.lambda_exec_role_arn), 1)
 }
