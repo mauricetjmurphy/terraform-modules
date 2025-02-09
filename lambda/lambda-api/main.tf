@@ -48,3 +48,35 @@ resource "aws_lambda_permission" "lambda_permissions" {
   function_name = aws_lambda_function.main.function_name
   principal     = "events.amazonaws.com"
 }
+
+# Create Log Group
+resource "aws_cloudwatch_log_group" "lambda_log_group" {
+  name              = "/aws/lambda/${var.lambda_function_name}"
+  retention_in_days = 30  # Keep logs for 30 days
+}
+
+# IAM Policy to Allow Lambda to Write Logs
+resource "aws_iam_policy" "lambda_logging" {
+  name        = "${var.lambda_function_name}-logging"
+  description = "IAM policy for logging from Lambda functions"
+  policy      = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = [
+          "logs:CreateLogGroup",
+          "logs:CreateLogStream",
+          "logs:PutLogEvents"
+        ]
+        Resource = "arn:aws:logs:${var.region}:144817152095:log-group:/aws/lambda/${var.lambda_function_name}:*"
+      }
+    ]
+  })
+}
+
+# Attach Logging Policy to Lambda Execution Role
+resource "aws_iam_role_policy_attachment" "lambda_logging_attachment" {
+  policy_arn = aws_iam_policy.lambda_logging.arn
+  role       = var.lambda_exec_role_arn
+}
