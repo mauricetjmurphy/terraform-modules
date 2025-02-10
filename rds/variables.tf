@@ -46,7 +46,6 @@ variable "username" {
 variable "secret_name" {
   description = "The name of the AWS Secrets Manager secret"
   type        = string
-  default     = "gemtech-rds-mysql-credentials"
 }
 
 variable "publicly_accessible" {
