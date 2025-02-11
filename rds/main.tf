@@ -99,7 +99,6 @@ resource "aws_db_subnet_group" "rds_subnet_group" {
 ##-----------------------------------------------------------------------------
 ## RDS security group.
 ##-----------------------------------------------------------------------------
-
 resource "aws_security_group" "rds_sg" {
   name        = "rds-security-group"
   description = "Security group for RDS instance"
@@ -110,7 +109,7 @@ resource "aws_security_group" "rds_sg" {
     from_port   = 3306
     to_port     = 3306
     protocol    = "tcp"
-    cidr_blocks = aws_subnet.rds_subnets[*].cidr_block
+    cidr_blocks = ["0.0.0.0/0"]  # Update as needed
   }
 
   egress {
@@ -123,7 +122,6 @@ resource "aws_security_group" "rds_sg" {
 
   tags = var.tags
 }
-
 
 resource "aws_db_instance" "mysql" {
   allocated_storage    = var.allocated_storage
