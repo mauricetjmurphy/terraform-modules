@@ -18,3 +18,8 @@ output "rds_connection_url" {
   value       = "mysql://${aws_db_instance.mysql.username}:${random_password.db_password.result}@${aws_db_instance.mysql.endpoint}:${aws_db_instance.mysql.port}/${aws_db_instance.mysql.db_name}"
   sensitive   = true
 }
+
+output "rds_sg_id" {
+  description = "Security Group ID for the RDS instance"
+  value       = aws_security_group.rds_sg.id
+}

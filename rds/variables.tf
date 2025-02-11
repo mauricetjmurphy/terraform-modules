@@ -94,3 +94,9 @@ variable "tags" {
   type        = map(string)
   default     = {}
 }
+
+variable "additional_security_groups" {
+  description = "List of additional security groups allowed to access RDS"
+  type        = list(string)
+  default     = []
+}
