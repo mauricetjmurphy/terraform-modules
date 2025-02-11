@@ -112,3 +112,15 @@ variable "statement_ids" {
   description = "List of statement IDs for Lambda permissions."
   default     = []
 }
+
+variable "vpc_subnet_ids" {
+  type        = list(string)
+  description = "VPC subnet ids"
+  default     = []
+}
+
+variable "security_group_ids" {
+  type        = list(string)
+  description = "List of security group ids"
+  default     = []
+}
