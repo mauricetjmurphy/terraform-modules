@@ -32,7 +32,7 @@ resource "aws_secretsmanager_secret_version" "db_credentials" {
     db_name       = aws_db_instance.mysql.db_name
     username      = aws_db_instance.mysql.username
     password      = random_password.db_password.result
-    host          = aws_db_instance.mysql.endpoint
+    host          = aws_db_proxy.rds_proxy.endpoint
     port          = aws_db_instance.mysql.port
     connection_url = "mysql://${aws_db_instance.mysql.username}:${random_password.db_password.result}@${aws_db_instance.mysql.endpoint}:${aws_db_instance.mysql.port}/${aws_db_instance.mysql.db_name}"
   })
@@ -147,3 +147,64 @@ resource "aws_db_instance" "mysql" {
 
   tags = var.tags
 }
+
+##-----------------------------------------------------------------------------
+## RDS Proxy.
+##-----------------------------------------------------------------------------
+resource "aws_db_proxy" "rds_proxy" {
+  name                   = "${var.environment}-rds-proxy"
+  engine_family          = "MYSQL"
+  role_arn               = aws_iam_role.rds_proxy_role.arn
+  vpc_subnet_ids         = aws_db_subnet_group.rds_subnet_group.subnet_ids
+  vpc_security_group_ids = [aws_security_group.rds_sg.id]
+
+  auth {
+    description = "Authentication for RDS Proxy"
+    iam_auth    = "DISABLED"
+    secret_arn  = aws_secretsmanager_secret.db_credentials.arn
+  }
+
+  require_tls = true
+
+  tags = {
+    Name        = "RDS Proxy - ${var.environment}"
+    Environment = var.environment
+  }
+
+  depends_on = [aws_db_instance.mysql]
+}
+
+##-----------------------------------------------------------------------------
+## RDS Proxy target group.
+##-----------------------------------------------------------------------------
+resource "aws_db_proxy_target" "rds_proxy_target" {
+  db_proxy_name = aws_db_proxy.rds_proxy.name
+  target_group_name = "default"
+  db_instance_identifier = aws_db_instance.mysql.identifier
+}
+
+##-----------------------------------------------------------------------------
+## RDS Proxy IAM role.
+##-----------------------------------------------------------------------------
+resource "aws_iam_role" "rds_proxy_role" {
+  name = "${var.environment}-rds-proxy-role"
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17",
+    Statement = [{
+      Effect = "Allow",
+      Principal = {
+        Service = "rds.amazonaws.com"
+      },
+      Action = "sts:AssumeRole"
+    }]
+  })
+
+  tags = var.tags
+}
+
+resource "aws_iam_role_policy_attachment" "rds_proxy_secrets_policy" {
+  role       = aws_iam_role.rds_proxy_role.name
+  policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonRDSDataFullAccess"
+}
+
