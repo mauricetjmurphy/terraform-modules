@@ -54,7 +54,7 @@ resource "aws_api_gateway_deployment" "api_deployment" {
   rest_api_id = aws_api_gateway_rest_api.rest_api.id
 
   triggers = {
-    redeployment = timestamp()  # Forces a new deployment on every Terraform apply
+    redeployment = timestamp() # Forces a new deployment on every Terraform apply
   }
 
   lifecycle {
@@ -62,10 +62,12 @@ resource "aws_api_gateway_deployment" "api_deployment" {
   }
 
   depends_on = [
-    aws_api_gateway_method.rest_api_method,  # Ensure methods are created before deployment
-    aws_api_gateway_integration.rest_api_integration  # Ensure integrations are created
+    aws_api_gateway_stage.stage,  # ✅ Ensure stage exists before deployment
+    aws_api_gateway_integration.rest_api_integration,  # ✅ Ensure integrations exist
+    var.api_methods  # ✅ Use passed API methods from root module
   ]
 }
+
 
 resource "aws_api_gateway_stage" "stage" {
   stage_name    = var.stage_name

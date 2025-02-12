@@ -86,3 +86,8 @@ variable "gateway_integration_type" {
   default     = "AWS_PROXY"
   description = "flag tp control the gatway integration type."
 }
+
+variable "api_methods" {
+  description = "Map of API Gateway methods"
+  type        = map(string)
+}
