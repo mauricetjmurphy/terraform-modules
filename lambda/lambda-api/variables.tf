@@ -98,7 +98,7 @@ variable "lambda_function_name" {
 variable "lambda_timeout" {
   description = "Timeout for the Lambda functions in seconds"
   type        = number
-  default     = 10
+  default     = 60
 }
 
 variable "lambda_env_vars" {

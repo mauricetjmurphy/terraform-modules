@@ -165,7 +165,7 @@ resource "aws_lambda_permission" "api_gateway_lambda_permission" {
   function_name = each.value.lambda_arn
   principal     = "apigateway.amazonaws.com"
 
-  source_arn = "${aws_api_gateway_rest_api.rest_api.execution_arn}/*/*"
+  source_arn = "${aws_api_gateway_rest_api.rest_api.execution_arn}/${var.stage_name}/ANY/${each.value.path_part}"
 }
 
 ##----------------------------------------------------------------------------------
