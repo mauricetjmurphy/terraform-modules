@@ -54,7 +54,7 @@ resource "aws_api_gateway_deployment" "api_deployment" {
   rest_api_id = aws_api_gateway_rest_api.rest_api.id
 
   triggers = {
-    redeployment = timestamp() 
+    redeployment = timestamp()
   }
 
   lifecycle {
@@ -62,9 +62,10 @@ resource "aws_api_gateway_deployment" "api_deployment" {
   }
 
   depends_on = [
-    aws_api_gateway_stage.stage
+    aws_api_gateway_method_settings.logging
   ]
 }
+
 
 resource "aws_api_gateway_stage" "stage" {
   stage_name    = var.stage_name
@@ -87,7 +88,7 @@ resource "aws_api_gateway_stage" "stage" {
   xray_tracing_enabled = true
 
   depends_on = [
-    aws_api_gateway_deployment.api_deployment
+    aws_api_gateway_deployment.api_deployment  # ✅ Stage now depends ONLY on deployment
   ]
 }
 
