@@ -175,18 +175,17 @@ resource "aws_security_group" "rds_proxy_sg" {
   description = "Security group for RDS Proxy"
   vpc_id      = var.vpc_id
 
-  ## ✅ Allow connections from Lambda Security Group
+  # ✅ Allow inbound MySQL connections from Lambda (public AWS IP range)
   ingress {
-    description     = "Allow Lambda to connect to RDS Proxy"
-    from_port       = 3306
-    to_port         = 3306
-    protocol        = "tcp"
-    security_groups = [aws_security_group.lambda_rds_sg.id]    
+    description = "Allow Lambda to connect to RDS Proxy"
+    from_port   = 3306
+    to_port     = 3306
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
   }
 
-  ## ✅ Allow all outbound traffic
+  # ✅ Allow all outbound traffic (needed for RDS Proxy to communicate)
   egress {
-    description = "Allow outbound traffic from RDS Proxy"
     from_port   = 0
     to_port     = 0
     protocol    = "-1"
@@ -195,6 +194,7 @@ resource "aws_security_group" "rds_proxy_sg" {
 
   tags = var.tags
 }
+
 
 ##-----------------------------------------------------------------------------
 ## RDS Proxy Configuration

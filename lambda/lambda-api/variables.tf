@@ -124,3 +124,9 @@ variable "security_group_ids" {
   description = "List of security group ids"
   default     = []
 }
+
+variable "vpc_security_group_ids" {
+  type        = list(string)
+  description = "List of security group IDs to attach to the Lambda function"
+}
+
