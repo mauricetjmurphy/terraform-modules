@@ -104,7 +104,7 @@ resource "aws_security_group" "rds_sg" {
     from_port   = 3306
     to_port     = 3306
     protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]  # Update as needed
+    security_groups = [aws_security_group.rds_proxy_sg.id]
   }
 
   egress {
@@ -112,7 +112,7 @@ resource "aws_security_group" "rds_sg" {
     from_port   = 0
     to_port     = 0
     protocol    = "-1"
-    cidr_blocks = ["0.0.0.0/0"]
+    security_groups = [aws_security_group.rds_proxy_sg.id]
   }
 
   tags = var.tags
@@ -140,8 +140,33 @@ resource "aws_db_instance" "mysql" {
 }
 
 ##-----------------------------------------------------------------------------
-## RDS Proxy.
+## Lambda/RDS Security Group
 ##-----------------------------------------------------------------------------
+resource "aws_security_group" "lambda_rds_sg" {
+  name        = "lambda-rds-security-group"
+  description = "Security group for Lambda functions to connect to RDS Proxy"
+  vpc_id      = var.vpc_id
+
+  ingress {
+    description     = "Allow Lambda to access RDS Proxy"
+    from_port       = 3306
+    to_port         = 3306
+    protocol        = "tcp"
+    cidr_blocks     = ["0.0.0.0/0"]  # Or restrict to VPC CIDR if needed
+  }
+
+  egress {
+    description = "Allow outbound traffic from RDS Proxy"
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  tags = var.tags
+}
+
+
 ##-----------------------------------------------------------------------------
 ## RDS Proxy Security Group
 ##-----------------------------------------------------------------------------
@@ -156,7 +181,7 @@ resource "aws_security_group" "rds_proxy_sg" {
     from_port       = 3306
     to_port         = 3306
     protocol        = "tcp"
-    security_groups = [aws_security_group.lambda_sg.id]  
+    security_groups = [aws_security_group.lambda_rds_sg.id]    
   }
 
   ## ✅ Allow all outbound traffic
@@ -194,7 +219,10 @@ resource "aws_db_proxy" "rds_proxy" {
     Environment = var.environment
   }
 
-  depends_on = [aws_db_instance.mysql]
+  depends_on = [
+  aws_db_instance.mysql,
+  aws_security_group.rds_proxy_sg
+]
 }
 
 ##-----------------------------------------------------------------------------
