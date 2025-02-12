@@ -54,7 +54,7 @@ resource "aws_api_gateway_deployment" "api_deployment" {
   rest_api_id = aws_api_gateway_rest_api.rest_api.id
 
   triggers = {
-    redeployment = timestamp()
+    redeployment = timestamp()  # Forces a new deployment on every Terraform apply
   }
 
   lifecycle {
@@ -62,10 +62,10 @@ resource "aws_api_gateway_deployment" "api_deployment" {
   }
 
   depends_on = [
-    aws_api_gateway_method_settings.logging
+    aws_api_gateway_method.rest_api_method,  # Ensure methods are created before deployment
+    aws_api_gateway_integration.rest_api_integration  # Ensure integrations are created
   ]
 }
-
 
 resource "aws_api_gateway_stage" "stage" {
   stage_name    = var.stage_name
@@ -88,9 +88,10 @@ resource "aws_api_gateway_stage" "stage" {
   xray_tracing_enabled = true
 
   depends_on = [
-    aws_api_gateway_deployment.api_deployment  # ✅ Stage now depends ONLY on deployment
+    aws_api_gateway_deployment.api_deployment  # Ensure stage is created after deployment
   ]
 }
+
 
 ##----------------------------------------------------------------------------------
 ## Enable Execution Logging via Method Settings
@@ -98,7 +99,7 @@ resource "aws_api_gateway_stage" "stage" {
 resource "aws_api_gateway_method_settings" "logging" {
   rest_api_id = aws_api_gateway_rest_api.rest_api.id
   stage_name  = aws_api_gateway_stage.stage.stage_name
-  method_path = "*/*" # Apply logging to all API Gateway methods
+  method_path = "*/*"  # Apply settings to all methods
 
   settings {
     logging_level      = "INFO"
@@ -106,6 +107,7 @@ resource "aws_api_gateway_method_settings" "logging" {
     metrics_enabled    = true
   }
 }
+
 
 ##----------------------------------------------------------------------------------
 ## IAM Role for API Gateway Logging
