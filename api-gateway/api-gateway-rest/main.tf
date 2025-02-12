@@ -54,7 +54,7 @@ resource "aws_api_gateway_deployment" "api_deployment" {
   rest_api_id = aws_api_gateway_rest_api.rest_api.id
 
   triggers = {
-    redeployment = timestamp() # Forces a new deployment on every Terraform apply
+    redeployment = timestamp() 
   }
 
   lifecycle {
@@ -62,7 +62,7 @@ resource "aws_api_gateway_deployment" "api_deployment" {
   }
 
   depends_on = [
-    aws_api_gateway_method.rest_api_method
+    aws_api_gateway_stage.stage
   ]
 }
 
