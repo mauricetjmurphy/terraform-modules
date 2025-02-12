@@ -5,20 +5,18 @@ provider "aws" {
 ##-----------------------------------------------------------------------------
 ## Random secure password.
 ##-----------------------------------------------------------------------------
-
 resource "random_password" "db_password" {
-  length           = 16                 # Length of the password
-  special          = true               # Include special characters
-  override_special = "!#$%^&*()-_+=~"   # Allowed special characters for AWS RDS
-  upper            = true               # Include uppercase characters
-  lower            = true               # Include lowercase characters
-  numeric          = true               # Include numbers
+  length           = 16
+  special          = true
+  override_special = "!#$%^&*()-_+=~"
+  upper            = true
+  lower            = true
+  numeric          = true
 }
 
 ##-----------------------------------------------------------------------------
-## Adds secrets to secret manager.
+## Adds secrets to AWS Secrets Manager.
 ##-----------------------------------------------------------------------------
-
 resource "aws_secretsmanager_secret" "db_credentials" {
   name        = var.secret_name
   description = "Credentials for RDS MySQL instance"
@@ -32,19 +30,17 @@ resource "aws_secretsmanager_secret_version" "db_credentials" {
     db_name       = aws_db_instance.mysql.db_name
     username      = aws_db_instance.mysql.username
     password      = random_password.db_password.result
-    host          = aws_db_proxy.rds_proxy.endpoint
+    host          = aws_db_proxy.rds_proxy.endpoint  # ✅ Use Proxy
     port          = aws_db_instance.mysql.port
-    connection_url = "mysql://${aws_db_instance.mysql.username}:${random_password.db_password.result}@${aws_db_instance.mysql.endpoint}:${aws_db_instance.mysql.port}/${aws_db_instance.mysql.db_name}"
+    connection_url = "mysql://${aws_db_instance.mysql.username}:${random_password.db_password.result}@${aws_db_proxy.rds_proxy.endpoint}:${aws_db_instance.mysql.port}/${aws_db_instance.mysql.db_name}"
   })
 
-  # Ensure the secret is created after the RDS instance
   depends_on = [aws_db_instance.mysql]
 }
 
 ##-----------------------------------------------------------------------------
 ## IAM role for RDS.
 ##-----------------------------------------------------------------------------
-
 resource "aws_iam_role" "rds_monitoring_role" {
   name = "rds-monitoring-role"
 
@@ -133,15 +129,11 @@ resource "aws_db_instance" "mysql" {
   publicly_accessible  = var.publicly_accessible
   skip_final_snapshot  = var.skip_final_snapshot
 
-  # Minimal storage and backup retention
   backup_retention_period = var.backup_retention_period
   storage_type            = var.storage_type
   storage_encrypted       = var.storage_encrypted
 
- # Use the new subnet group
   db_subnet_group_name = aws_db_subnet_group.rds_subnet_group.name
-
-  # Security Groups
   vpc_security_group_ids = [aws_security_group.rds_sg.id]
 
   tags = var.tags
@@ -154,7 +146,7 @@ resource "aws_db_proxy" "rds_proxy" {
   name                   = "${var.environment}-rds-proxy"
   engine_family          = "MYSQL"
   role_arn               = aws_iam_role.rds_proxy_role.arn
-  vpc_subnet_ids         = aws_db_subnet_group.rds_subnet_group.subnet_ids
+  vpc_subnet_ids         = aws_subnet.rds_subnets[*].id  # ✅ Fix reference
   vpc_security_group_ids = [aws_security_group.rds_sg.id]
 
   auth {
@@ -177,8 +169,8 @@ resource "aws_db_proxy" "rds_proxy" {
 ## RDS Proxy target group.
 ##-----------------------------------------------------------------------------
 resource "aws_db_proxy_target" "rds_proxy_target" {
-  db_proxy_name = aws_db_proxy.rds_proxy.name
-  target_group_name = "default"
+  db_proxy_name          = aws_db_proxy.rds_proxy.name
+  target_group_name      = "default"  # ✅ Use default target group
   db_instance_identifier = aws_db_instance.mysql.identifier
 }
 
@@ -204,6 +196,10 @@ resource "aws_iam_role" "rds_proxy_role" {
 
 resource "aws_iam_role_policy_attachment" "rds_proxy_secrets_policy" {
   role       = aws_iam_role.rds_proxy_role.name
-  policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonRDSDataFullAccess"
+  policy_arn = "arn:aws:iam::aws:policy/AmazonRDSProxyFullAccess"  # ✅ Best Practice
 }
 
+resource "aws_iam_role_policy_attachment" "rds_proxy_secrets_access" {
+  role       = aws_iam_role.rds_proxy_role.name
+  policy_arn = "arn:aws:iam::aws:policy/SecretsManagerReadWrite"  # ✅ Needed for secret access
+}
