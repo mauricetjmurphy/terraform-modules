@@ -70,7 +70,6 @@ resource "aws_iam_role_policy_attachment" "rds_monitoring_policy" {
 ##-----------------------------------------------------------------------------
 ## RDS subnets.
 ##-----------------------------------------------------------------------------
-
 resource "aws_subnet" "rds_subnets" {
   count = length(var.azs)
 
