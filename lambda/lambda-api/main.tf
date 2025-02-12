@@ -35,10 +35,6 @@ resource "aws_lambda_function" "main" {
     variables = var.lambda_env_vars
   }
 
-  vpc_config {
-    subnet_ids         = var.vpc_subnet_ids
-    security_group_ids = var.security_group_ids
-}
 }
 
 ##----------------------------------------------------------------------------- 
