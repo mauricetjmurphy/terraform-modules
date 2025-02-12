@@ -47,9 +47,28 @@ resource "aws_api_gateway_rest_api_policy" "public_api_policy" {
 EOF
 }
 
+
 ##----------------------------------------------------------------------------------
 ## API Gateway Deployment & Stage
 ##----------------------------------------------------------------------------------
+resource "aws_api_gateway_deployment" "api_deployment" {
+  rest_api_id = aws_api_gateway_rest_api.rest_api.id
+
+  triggers = {
+    redeployment = timestamp() # Forces new deployment on every Terraform apply
+  }
+
+  lifecycle {
+    create_before_destroy = true
+  }
+
+  depends_on = [
+    aws_api_gateway_method.rest_api_method,
+    aws_api_gateway_method_settings.logging
+  ]
+}
+
+
 resource "aws_api_gateway_stage" "stage" {
   stage_name    = var.stage_name
   rest_api_id   = aws_api_gateway_rest_api.rest_api.id
@@ -71,7 +90,7 @@ resource "aws_api_gateway_stage" "stage" {
   xray_tracing_enabled = true
 
   depends_on = [
-    aws_iam_role.apigateway_logging_role
+    aws_api_gateway_deployment.api_deployment
   ]
 }
 
