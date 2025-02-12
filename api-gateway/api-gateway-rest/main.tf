@@ -54,7 +54,7 @@ resource "aws_api_gateway_deployment" "api_deployment" {
   rest_api_id = aws_api_gateway_rest_api.rest_api.id
 
   triggers = {
-    redeployment = timestamp() # Forces a new deployment on every Terraform apply
+    redeployment = timestamp()  # Forces a new deployment on every Terraform apply
   }
 
   lifecycle {
@@ -62,12 +62,10 @@ resource "aws_api_gateway_deployment" "api_deployment" {
   }
 
   depends_on = [
-    aws_api_gateway_stage.stage,  # ✅ Ensure stage exists before deployment
-    aws_api_gateway_integration.rest_api_integration,  # ✅ Ensure integrations exist
-    var.api_methods  # ✅ Use passed API methods from root module
+    aws_api_gateway_method.rest_api_method,  # ✅ Ensure API methods exist before deployment
+    aws_api_gateway_integration.rest_api_integration  # ✅ Ensure integrations exist
   ]
 }
-
 
 resource "aws_api_gateway_stage" "stage" {
   stage_name    = var.stage_name
@@ -180,4 +178,13 @@ resource "aws_cloudwatch_log_group" "api_gateway_execution_logs" {
 resource "aws_cloudwatch_log_group" "api_gateway_access_logs" {
   name              = "/aws/api-gateway/${var.api_name}/access-logs"
   retention_in_days = 7
+}
+
+# Create API Gateway methods for each resource
+resource "aws_api_gateway_method" "rest_api_method" {
+  for_each      = var.api_resources
+  rest_api_id   = module.api_gateway.rest_api_id
+  resource_id   = module.api_gateway.api_resources[each.key]
+  http_method   = each.value.http_method
+  authorization = "NONE"
 }
