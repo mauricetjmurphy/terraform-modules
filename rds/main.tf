@@ -196,10 +196,15 @@ resource "aws_iam_role" "rds_proxy_role" {
 
 resource "aws_iam_role_policy_attachment" "rds_proxy_secrets_policy" {
   role       = aws_iam_role.rds_proxy_role.name
-  policy_arn = "arn:aws:iam::aws:policy/AmazonRDSProxyFullAccess"  # ✅ Best Practice
+  policy_arn = "arn:aws:iam::aws:policy/AmazonRDSFullAccess"  # ✅ Fixed Policy
 }
 
 resource "aws_iam_role_policy_attachment" "rds_proxy_secrets_access" {
   role       = aws_iam_role.rds_proxy_role.name
   policy_arn = "arn:aws:iam::aws:policy/SecretsManagerReadWrite"  # ✅ Needed for secret access
+}
+
+resource "aws_iam_role_policy_attachment" "rds_proxy_data_access" {
+  role       = aws_iam_role.rds_proxy_role.name
+  policy_arn = "arn:aws:iam::aws:policy/AmazonRDSDataFullAccess"  # ✅ Optional, for querying data
 }
