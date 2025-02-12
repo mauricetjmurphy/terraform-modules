@@ -208,7 +208,6 @@ resource "aws_api_gateway_integration" "rest_api_integration" {
   uri                     = each.value.integration_uri
 }
 
-# Allow API Gateway to invoke Lambda functions
 resource "aws_lambda_permission" "api_gateway_lambda_permission" {
   for_each      = var.api_resources
   statement_id  = "AllowAPIGatewayInvoke-${each.key}"
@@ -218,6 +217,7 @@ resource "aws_lambda_permission" "api_gateway_lambda_permission" {
 
   source_arn = "${aws_api_gateway_rest_api.rest_api.execution_arn}/*"
 }
+
 
 ##----------------------------------------------------------------------------------
 ## Proxy resources
@@ -247,14 +247,6 @@ resource "aws_api_gateway_integration" "proxy_integration" {
   uri                     = each.value.integration_uri
 }
 
-resource "aws_lambda_permission" "api_gateway_lambda_permission" {
-  for_each      = var.api_resources
-  statement_id  = "AllowAPIGatewayInvoke-${each.key}"
-  action        = "lambda:InvokeFunction"
-  function_name = each.value.lambda_arn
-  principal     = "apigateway.amazonaws.com"
 
-  source_arn = "${aws_api_gateway_rest_api.rest_api.execution_arn}/*"
-}
 
 
