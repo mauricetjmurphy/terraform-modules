@@ -203,9 +203,21 @@ resource "aws_api_gateway_integration" "rest_api_integration" {
   rest_api_id             = aws_api_gateway_rest_api.rest_api.id
   resource_id             = aws_api_gateway_resource.api_resources[each.key].id
   http_method             = aws_api_gateway_method.rest_api_method[each.key].http_method
-  integration_http_method = "POST"
+  integration_http_method = each.value.http_method
   type                    = "AWS_PROXY"
   uri                     = each.value.integration_uri
 }
+
+# Allow API Gateway to invoke Lambda functions
+resource "aws_lambda_permission" "api_gateway_lambda_permission" {
+  for_each      = var.api_resources
+  statement_id  = "AllowAPIGatewayInvoke-${each.key}"
+  action        = "lambda:InvokeFunction"
+  function_name = each.value.lambda_arn
+  principal     = "apigateway.amazonaws.com"
+
+  source_arn = "${aws_api_gateway_rest_api.rest_api.execution_arn}/*"
+}
+
 
 
