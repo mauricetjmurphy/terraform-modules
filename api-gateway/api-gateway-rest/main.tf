@@ -194,4 +194,53 @@ resource "aws_api_gateway_stage" "stage" {
   stage_name    = var.stage_name
   rest_api_id   = aws_api_gateway_rest_api.rest_api.id
   deployment_id = aws_api_gateway_deployment.api_deployment.id
+
+ access_log_settings {
+    destination_arn = aws_cloudwatch_log_group.api_gateway_access_logs.arn
+    format = jsonencode({
+      requestId      = "$context.requestId"
+      ip             = "$context.identity.sourceIp"
+      requestTime    = "$context.requestTime"
+      httpMethod     = "$context.httpMethod"
+      resourcePath   = "$context.resourcePath"
+      status         = "$context.status"
+      responseLength = "$context.responseLength"
+    })
+  }
+
+  depends_on = [
+    aws_iam_role.apigateway_logging_role
+  ]
+}
+
+resource "aws_iam_role" "apigateway_logging_role" {
+  name = "APIGatewayCloudWatchLogsRole"
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Action = "sts:AssumeRole"
+      Effect = "Allow"
+      Principal = {
+        Service = "apigateway.amazonaws.com"
+      }
+    }]
+  })
+}
+
+resource "aws_iam_policy_attachment" "apigateway_logs" {
+  name       = "apigateway-logs-attachment"
+  roles      = [aws_iam_role.apigateway_logging_role.name]
+  policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonAPIGatewayPushToCloudWatchLogs"
+}
+
+
+resource "aws_cloudwatch_log_group" "api_gateway_execution_logs" {
+  name              = "/aws/api-gateway/${var.api_name}/execution-logs"
+  retention_in_days = 7
+}
+
+resource "aws_cloudwatch_log_group" "api_gateway_access_logs" {
+  name              = "/aws/api-gateway/${var.api_name}/access-logs"
+  retention_in_days = 7
 }
