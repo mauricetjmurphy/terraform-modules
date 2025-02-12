@@ -197,3 +197,15 @@ resource "aws_api_gateway_method" "rest_api_method" {
   authorization = "NONE"
 }
 
+# Define API Gateway Integrations
+resource "aws_api_gateway_integration" "rest_api_integration" {
+  for_each                = var.api_resources
+  rest_api_id             = aws_api_gateway_rest_api.rest_api.id
+  resource_id             = aws_api_gateway_resource.api_resources[each.key].id
+  http_method             = aws_api_gateway_method.rest_api_method[each.key].http_method
+  integration_http_method = "POST"
+  type                    = "AWS_PROXY"
+  uri                     = each.value.integration_uri
+}
+
+
