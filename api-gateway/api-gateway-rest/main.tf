@@ -48,154 +48,14 @@ EOF
 }
 
 ##----------------------------------------------------------------------------------
-## Create API Resources Dynamically
+## API Gateway Deployment & Stage
 ##----------------------------------------------------------------------------------
-resource "aws_api_gateway_resource" "api_resources" {
-  for_each    = var.api_resources
-  rest_api_id = aws_api_gateway_rest_api.rest_api.id
-  parent_id   = aws_api_gateway_rest_api.rest_api.root_resource_id
-  path_part   = each.value.path_part
-}
-
-##----------------------------------------------------------------------------------
-## Create API Methods for Each Resource
-##----------------------------------------------------------------------------------
-resource "aws_api_gateway_method" "rest_api_method" {
-  for_each      = var.api_resources
-  rest_api_id   = aws_api_gateway_rest_api.rest_api.id
-  resource_id   = aws_api_gateway_resource.api_resources[each.key].id
-  http_method   = each.value.http_method
-  authorization = var.authorization
-}
-
-##----------------------------------------------------------------------------------
-## Create API Gateway Integrations for Each Method
-##----------------------------------------------------------------------------------
-resource "aws_api_gateway_integration" "rest_api_integration" {
-  for_each                = var.api_resources
-  rest_api_id             = aws_api_gateway_rest_api.rest_api.id
-  resource_id             = aws_api_gateway_resource.api_resources[each.key].id
-  http_method             = aws_api_gateway_method.rest_api_method[each.key].http_method
-  integration_http_method = var.http_method
-  # connection_type         = var.connection_rest_api_type
-  # connection_id           = var.connection_id
-  # credentials             = var.credentials
-  # request_templates       = var.request_templates
-  # request_parameters      = var.request_parameters
-  # cache_namespace         = var.cache_namespace
-  # content_handling        = var.content_handling
-  # cache_key_parameters    = var.cache_key_parameters
-  type                    = var.gateway_integration_type
-  timeout_milliseconds    = var.timeout_milliseconds
-  uri                     = each.value.integration_uri
-}
-
-##----------------------------------------------------------------------------------
-## API Gateway Proxy Method for Each Resource
-##----------------------------------------------------------------------------------
-resource "aws_api_gateway_resource" "proxy_resources" {
-  for_each    = var.api_resources
-  rest_api_id = aws_api_gateway_rest_api.rest_api.id
-  parent_id   = aws_api_gateway_resource.api_resources[each.key].id
-  path_part   = "{proxy+}"
-}
-
-##----------------------------------------------------------------------------------
-## API Proxy Methods for Each Proxy Resource
-##----------------------------------------------------------------------------------
-resource "aws_api_gateway_method" "proxy_methods" {
-  for_each      = var.api_resources
-  rest_api_id   = aws_api_gateway_rest_api.rest_api.id
-  resource_id   = aws_api_gateway_resource.proxy_resources[each.key].id
-  http_method   = "ANY"
-  authorization = var.authorization
-}
-
-##----------------------------------------------------------------------------------
-## Integrate Proxy Methods for Each Proxy Resource
-##----------------------------------------------------------------------------------
-resource "aws_api_gateway_integration" "proxy_integration" {
-  for_each                = var.api_resources
-  rest_api_id             = aws_api_gateway_rest_api.rest_api.id
-  resource_id             = aws_api_gateway_resource.proxy_resources[each.key].id
-  http_method             = aws_api_gateway_method.proxy_methods[each.key].http_method
-  integration_http_method = var.http_method
-  type                    = var.gateway_integration_type
-  timeout_milliseconds    = var.timeout_milliseconds
-  uri                     = each.value.integration_uri
-}
-
-
-##----------------------------------------------------------------------------------
-## API Gateway Method Response
-##----------------------------------------------------------------------------------
-resource "aws_api_gateway_method_response" "rest_api_method_response" {
-  for_each          = var.api_resources
-  rest_api_id       = aws_api_gateway_rest_api.rest_api.id
-  resource_id       = aws_api_gateway_resource.api_resources[each.key].id
-  http_method       = aws_api_gateway_method.rest_api_method[each.key].http_method
-  status_code       = each.value.status_code
-  response_models   = each.value.response_models
-  response_parameters = length(each.value.response_parameters) > 0 ? each.value.response_parameters : {}
-}
-
-##----------------------------------------------------------------------------------
-## API Gateway Integration Response
-##----------------------------------------------------------------------------------
-resource "aws_api_gateway_integration_response" "rest_api_integration_response" {
-  for_each             = var.api_resources
-  rest_api_id          = aws_api_gateway_rest_api.rest_api.id
-  resource_id          = aws_api_gateway_resource.api_resources[each.key].id
-  http_method          = aws_api_gateway_method.rest_api_method[each.key].http_method
-  status_code          = aws_api_gateway_method_response.rest_api_method_response[each.key].status_code
-  # content_handling     = var.content_handling
-  # response_parameters  = var.integration_response_parameters
-
-  depends_on = [
-    aws_api_gateway_method.rest_api_method,
-    aws_api_gateway_integration.rest_api_integration,
-    aws_api_gateway_method_response.rest_api_method_response
-  ]
-}
-
-resource "aws_lambda_permission" "api_gateway_lambda_permission" {
-  for_each      = var.api_resources
-  statement_id  = "AllowAPIGatewayInvoke-${each.key}"
-  action        = "lambda:InvokeFunction"
-  function_name = each.value.lambda_arn
-  principal     = "apigateway.amazonaws.com"
-
-  source_arn = "${aws_api_gateway_rest_api.rest_api.execution_arn}/${var.stage_name}/ANY/${each.value.path_part}"
-}
-
-##----------------------------------------------------------------------------------
-## Deployment & Stage
-##----------------------------------------------------------------------------------
-resource "aws_api_gateway_deployment" "api_deployment" {
-  rest_api_id = aws_api_gateway_rest_api.rest_api.id
-  triggers = {
-    redeployment = timestamp()
-  }
-  lifecycle {
-    create_before_destroy = true
-  }
-
-   depends_on = [
-    aws_api_gateway_method.rest_api_method,
-    aws_api_gateway_method_response.rest_api_method_response,
-    aws_api_gateway_integration.rest_api_integration,
-    aws_api_gateway_integration_response.rest_api_integration_response,
-    aws_api_gateway_method.proxy_methods,
-    aws_api_gateway_integration.proxy_integration 
-  ]
-}
-
 resource "aws_api_gateway_stage" "stage" {
   stage_name    = var.stage_name
   rest_api_id   = aws_api_gateway_rest_api.rest_api.id
   deployment_id = aws_api_gateway_deployment.api_deployment.id
 
- access_log_settings {
+  access_log_settings {
     destination_arn = aws_cloudwatch_log_group.api_gateway_access_logs.arn
     format = jsonencode({
       requestId      = "$context.requestId"
@@ -208,8 +68,37 @@ resource "aws_api_gateway_stage" "stage" {
     })
   }
 
+  xray_tracing_enabled = true
+
   depends_on = [
     aws_iam_role.apigateway_logging_role
+  ]
+}
+
+##----------------------------------------------------------------------------------
+## Enable Execution Logging via Method Settings
+##----------------------------------------------------------------------------------
+resource "aws_api_gateway_method_settings" "logging" {
+  rest_api_id = aws_api_gateway_rest_api.rest_api.id
+  stage_name  = aws_api_gateway_stage.stage.stage_name
+  method_path = "*/*" # Apply logging to all API Gateway methods
+
+  settings {
+    logging_level      = "INFO"
+    data_trace_enabled = true
+    metrics_enabled    = true
+  }
+}
+
+##----------------------------------------------------------------------------------
+## IAM Role for API Gateway Logging
+##----------------------------------------------------------------------------------
+resource "aws_api_gateway_account" "api_logging" {
+  cloudwatch_role_arn = aws_iam_role.apigateway_logging_role.arn
+
+  depends_on = [
+    aws_iam_role.apigateway_logging_role,
+    aws_iam_policy_attachment.apigateway_logs
   ]
 }
 
@@ -217,7 +106,7 @@ resource "aws_iam_role" "apigateway_logging_role" {
   name = "APIGatewayCloudWatchLogsRole"
 
   assume_role_policy = jsonencode({
-    Version = "2012-10-17"
+    Version = "2012-10-17",
     Statement = [{
       Action = "sts:AssumeRole"
       Effect = "Allow"
@@ -228,13 +117,40 @@ resource "aws_iam_role" "apigateway_logging_role" {
   })
 }
 
+resource "aws_iam_policy" "apigateway_logging_policy" {
+  name        = "APIGatewayLoggingPolicy"
+  description = "Allows API Gateway to write logs to CloudWatch"
+
+  policy = jsonencode({
+    Version = "2012-10-17",
+    Statement = [
+      {
+        Effect   = "Allow",
+        Action   = [
+          "logs:CreateLogGroup",
+          "logs:CreateLogStream",
+          "logs:DescribeLogGroups",
+          "logs:DescribeLogStreams",
+          "logs:PutLogEvents"
+        ],
+        Resource = [
+          "${aws_cloudwatch_log_group.api_gateway_execution_logs.arn}",
+          "${aws_cloudwatch_log_group.api_gateway_access_logs.arn}"
+        ]
+      }
+    ]
+  })
+}
+
 resource "aws_iam_policy_attachment" "apigateway_logs" {
   name       = "apigateway-logs-attachment"
   roles      = [aws_iam_role.apigateway_logging_role.name]
-  policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonAPIGatewayPushToCloudWatchLogs"
+  policy_arn = aws_iam_policy.apigateway_logging_policy.arn
 }
 
-
+##----------------------------------------------------------------------------------
+## CloudWatch Log Groups for Execution & Access Logs
+##----------------------------------------------------------------------------------
 resource "aws_cloudwatch_log_group" "api_gateway_execution_logs" {
   name              = "/aws/api-gateway/${var.api_name}/execution-logs"
   retention_in_days = 7
