@@ -118,6 +118,9 @@ resource "aws_security_group" "rds_sg" {
   tags = var.tags
 }
 
+##-----------------------------------------------------------------------------
+## RDS instance.
+##-----------------------------------------------------------------------------
 resource "aws_db_instance" "mysql" {
   allocated_storage    = var.allocated_storage
   engine               = "mysql"
@@ -140,34 +143,6 @@ resource "aws_db_instance" "mysql" {
 }
 
 ##-----------------------------------------------------------------------------
-## Lambda/RDS Security Group
-##-----------------------------------------------------------------------------
-resource "aws_security_group" "lambda_rds_sg" {
-  name        = "lambda-rds-security-group"
-  description = "Security group for Lambda functions to connect to RDS Proxy"
-  vpc_id      = var.vpc_id
-
-  ingress {
-    description     = "Allow Lambda to access RDS Proxy"
-    from_port       = 3306
-    to_port         = 3306
-    protocol        = "tcp"
-    cidr_blocks     = ["0.0.0.0/0"]  # Or restrict to VPC CIDR if needed
-  }
-
-  egress {
-    description = "Allow outbound traffic from RDS Proxy"
-    from_port   = 0
-    to_port     = 0
-    protocol    = "-1"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-
-  tags = var.tags
-}
-
-
-##-----------------------------------------------------------------------------
 ## RDS Proxy Security Group
 ##-----------------------------------------------------------------------------
 resource "aws_security_group" "rds_proxy_sg" {
@@ -181,15 +156,15 @@ resource "aws_security_group" "rds_proxy_sg" {
     from_port   = 3306
     to_port     = 3306
     protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
+    cidr_blocks = [data.aws_security_group.lambda_sg.id]
   }
 
   # ✅ Allow all outbound traffic (needed for RDS Proxy to communicate)
   egress {
     from_port   = 0
     to_port     = 0
-    protocol    = "-1"
-    cidr_blocks = ["0.0.0.0/0"]
+    protocol    = "tcp"
+    cidr_blocks = [aws_security_group.rds_sg.id]
   }
 
   tags = var.tags
@@ -197,14 +172,14 @@ resource "aws_security_group" "rds_proxy_sg" {
 
 
 ##-----------------------------------------------------------------------------
-## RDS Proxy Configuration
+## RDS Proxy instance
 ##-----------------------------------------------------------------------------
 resource "aws_db_proxy" "rds_proxy" {
   name                   = "${var.environment}-rds-proxy"
   engine_family          = "MYSQL"
   role_arn               = aws_iam_role.rds_proxy_role.arn
   vpc_subnet_ids         = aws_subnet.rds_subnets[*].id  
-  vpc_security_group_ids = [aws_security_group.rds_proxy_sg.id]  # ✅ Uses the new security group
+  vpc_security_group_ids = [aws_security_group.rds_proxy_sg.id]
 
   auth {
     description = "Authentication for RDS Proxy"
