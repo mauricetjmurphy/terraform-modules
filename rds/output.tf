@@ -24,8 +24,4 @@ output "rds_sg_id" {
   value       = aws_security_group.rds_sg.id
 }
 
-output "lambda_rds_sg_id" {
-  description = "Security Group ID for Lambda to access RDS Proxy"
-  value       = aws_security_group.lambda_rds_sg.id
-}
 
