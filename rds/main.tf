@@ -104,7 +104,7 @@ resource "aws_security_group" "rds_sg" {
     from_port   = 3306
     to_port     = 3306
     protocol    = "tcp"
-    security_groups = [aws_security_group.rds_proxy_sg.id]
+    cidr_blocks = [var.base_cidr]
   }
 
   egress {
@@ -156,7 +156,7 @@ resource "aws_security_group" "rds_proxy_sg" {
     from_port   = 3306
     to_port     = 3306
     protocol    = "tcp"
-    cidr_blocks = [data.aws_security_group.lambda_sg.id]
+    cidr_blocks = [var.base_cidr]
   }
 
   # ✅ Allow all outbound traffic (needed for RDS Proxy to communicate)
@@ -231,7 +231,7 @@ resource "aws_iam_role" "rds_proxy_role" {
 
 resource "aws_iam_role_policy_attachment" "rds_proxy_secrets_policy" {
   role       = aws_iam_role.rds_proxy_role.name
-  policy_arn = "arn:aws:iam::aws:policy/AmazonRDSFullAccess"  # ✅ Fixed Policy
+  policy_arn = "arn:aws:iam::aws:policy/AmazonRDSFullAccess"
 }
 
 resource "aws_iam_role_policy_attachment" "rds_proxy_secrets_access" {
