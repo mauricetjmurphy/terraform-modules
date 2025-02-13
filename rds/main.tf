@@ -112,7 +112,7 @@ resource "aws_security_group" "rds_sg" {
     from_port   = 0
     to_port     = 0
     protocol    = "-1"
-    security_groups = [aws_security_group.rds_proxy_sg.id]
+    cidr_blocks = ["0.0.0.0/0"]
   }
 
   tags = var.tags
@@ -164,7 +164,7 @@ resource "aws_security_group" "rds_proxy_sg" {
     from_port   = 0
     to_port     = 0
     protocol    = "tcp"
-    cidr_blocks = [aws_security_group.rds_sg.id]
+    cidr_blocks = [var.base_cidr]
   }
 
   tags = var.tags
