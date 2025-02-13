@@ -113,6 +113,18 @@ variable "statement_ids" {
   default     = []
 }
 
+variable "private_subnets" {
+  type        = list(string)
+  description = "List of private subnets"
+  default     = []
+}
+
+variable "security_group_ids" {
+  type        = list(string)
+  description = "List of security groups"
+  default     = []
+}
+
 
 
 

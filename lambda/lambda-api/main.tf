@@ -30,6 +30,11 @@ resource "aws_lambda_function" "main" {
   s3_key           = var.use_s3 ? var.s3_key : null
   source_code_hash = var.use_s3 ? null : filebase64sha256("lambda-package/main.zip")
 
+  vpc_config {
+    subnet_ids         = var.private_subnets
+    security_group_ids = var.security_group_ids
+  }
+
   # Environment Variables for Lambda function
   environment {
     variables = var.lambda_env_vars
