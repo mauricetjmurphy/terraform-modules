@@ -187,7 +187,7 @@ resource "aws_db_proxy" "rds_proxy" {
     secret_arn  = aws_secretsmanager_secret.db_credentials.arn
   }
 
-  require_tls = true
+  require_tls = var.require_tls
 
   tags = {
     Name        = "RDS Proxy - ${var.environment}"

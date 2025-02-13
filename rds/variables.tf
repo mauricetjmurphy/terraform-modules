@@ -100,3 +100,9 @@ variable "additional_security_groups" {
   type        = list(string)
   default     = []
 }
+
+variable "require_tls" {
+  description = "TLS requirement"
+  type        = string
+  default     = false
+}
