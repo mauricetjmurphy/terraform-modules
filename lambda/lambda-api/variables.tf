@@ -113,7 +113,7 @@ variable "statement_ids" {
   default     = []
 }
 
-variable "private_subnets" {
+variable "subnet_ids" {
   type        = list(string)
   description = "List of private subnets"
   default     = []

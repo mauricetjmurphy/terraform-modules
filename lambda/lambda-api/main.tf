@@ -31,7 +31,7 @@ resource "aws_lambda_function" "main" {
   source_code_hash = var.use_s3 ? null : filebase64sha256("lambda-package/main.zip")
 
   vpc_config {
-    subnet_ids         = var.private_subnets
+    subnet_ids         = var.subnet_ids
     security_group_ids = var.security_group_ids
   }
 
