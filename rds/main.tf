@@ -1,245 +1,174 @@
-provider "aws" {
-  region = var.region
+locals {
+  create_db_subnet_group    = var.create_db_subnet_group && var.putin_khuylo
+  create_db_parameter_group = var.create_db_parameter_group && var.putin_khuylo
+  create_db_instance        = var.create_db_instance && var.putin_khuylo
+
+  db_subnet_group_name    = var.create_db_subnet_group ? module.db_subnet_group.db_subnet_group_id : var.db_subnet_group_name
+  parameter_group_name_id = var.create_db_parameter_group ? module.db_parameter_group.db_parameter_group_id : var.parameter_group_name
+
+  create_db_option_group = var.create_db_option_group && var.engine != "postgres"
+  option_group           = local.create_db_option_group ? module.db_option_group.db_option_group_id : var.option_group_name
 }
 
-##-----------------------------------------------------------------------------
-## Random secure password.
-##-----------------------------------------------------------------------------
-resource "random_password" "db_password" {
-  length           = 16
-  special          = true
-  override_special = "!#$%^&*()-_+=~"
-  upper            = true
-  lower            = true
-  numeric          = true
+module "db_subnet_group" {
+  source = "./modules/db_subnet_group"
+
+  create = local.create_db_subnet_group
+
+  name            = coalesce(var.db_subnet_group_name, var.identifier)
+  use_name_prefix = var.db_subnet_group_use_name_prefix
+  description     = var.db_subnet_group_description
+  subnet_ids      = var.subnet_ids
+
+  tags = merge(var.tags, var.db_subnet_group_tags)
 }
 
-##-----------------------------------------------------------------------------
-## Adds secrets to AWS Secrets Manager.
-##-----------------------------------------------------------------------------
-resource "aws_secretsmanager_secret" "db_credentials" {
-  name        = var.secret_name
-  description = "Credentials for RDS MySQL instance"
-  tags        = var.tags
+module "db_parameter_group" {
+  source = "./modules/db_parameter_group"
+
+  create = local.create_db_parameter_group
+
+  name            = coalesce(var.parameter_group_name, var.identifier)
+  use_name_prefix = var.parameter_group_use_name_prefix
+  description     = var.parameter_group_description
+  family          = var.family
+
+  parameters   = var.parameters
+  skip_destroy = var.parameter_group_skip_destroy
+
+  tags = merge(var.tags, var.db_parameter_group_tags)
 }
 
-resource "aws_secretsmanager_secret_version" "db_credentials" {
-  secret_id = aws_secretsmanager_secret.db_credentials.id
+module "db_option_group" {
+  source = "./modules/db_option_group"
 
-  secret_string = jsonencode({
-    db_name       = aws_db_instance.mysql.db_name
-    username      = aws_db_instance.mysql.username
-    password      = random_password.db_password.result
-    host          = aws_db_proxy.rds_proxy.endpoint  # ✅ Use Proxy
-    port          = aws_db_instance.mysql.port
-    connection_url = "mysql://${aws_db_instance.mysql.username}:${random_password.db_password.result}@${aws_db_proxy.rds_proxy.endpoint}:${aws_db_instance.mysql.port}/${aws_db_instance.mysql.db_name}"
-  })
+  create = local.create_db_option_group
 
-  depends_on = [aws_db_instance.mysql]
+  name                     = coalesce(var.option_group_name, var.identifier)
+  use_name_prefix          = var.option_group_use_name_prefix
+  option_group_description = var.option_group_description
+  engine_name              = var.engine
+  major_engine_version     = var.major_engine_version
+
+  options      = var.options
+  skip_destroy = var.option_group_skip_destroy
+
+  timeouts = var.option_group_timeouts
+
+  tags = merge(var.tags, var.db_option_group_tags)
 }
 
-##-----------------------------------------------------------------------------
-## IAM role for RDS.
-##-----------------------------------------------------------------------------
-resource "aws_iam_role" "rds_monitoring_role" {
-  name = "rds-monitoring-role"
+module "db_instance" {
+  source = "./modules/db_instance"
 
-  assume_role_policy = jsonencode({
-    Version = "2012-10-17",
-    Statement = [{
-      Effect = "Allow",
-      Principal = {
-        Service = "rds.amazonaws.com"
-      },
-      Action = "sts:AssumeRole"
-    }]
-  })
+  create                = local.create_db_instance
+  identifier            = var.identifier
+  use_identifier_prefix = var.instance_use_identifier_prefix
 
-  tags = var.tags
+  engine                   = var.engine
+  engine_version           = var.engine_version
+  engine_lifecycle_support = var.engine_lifecycle_support
+  instance_class           = var.instance_class
+  allocated_storage        = var.allocated_storage
+  storage_type             = var.storage_type
+  storage_encrypted        = var.storage_encrypted
+  kms_key_id               = var.kms_key_id
+  license_model            = var.license_model
+
+  db_name                             = var.db_name
+  username                            = var.username
+  password                            = var.manage_master_user_password ? null : var.password
+  port                                = var.port
+  domain                              = var.domain
+  domain_auth_secret_arn              = var.domain_auth_secret_arn
+  domain_dns_ips                      = var.domain_dns_ips
+  domain_fqdn                         = var.domain_fqdn
+  domain_iam_role_name                = var.domain_iam_role_name
+  domain_ou                           = var.domain_ou
+  iam_database_authentication_enabled = var.iam_database_authentication_enabled
+  custom_iam_instance_profile         = var.custom_iam_instance_profile
+  manage_master_user_password         = var.manage_master_user_password
+  master_user_secret_kms_key_id       = var.master_user_secret_kms_key_id
+
+  manage_master_user_password_rotation                   = var.manage_master_user_password_rotation
+  master_user_password_rotate_immediately                = var.master_user_password_rotate_immediately
+  master_user_password_rotation_automatically_after_days = var.master_user_password_rotation_automatically_after_days
+  master_user_password_rotation_duration                 = var.master_user_password_rotation_duration
+  master_user_password_rotation_schedule_expression      = var.master_user_password_rotation_schedule_expression
+
+  vpc_security_group_ids = var.vpc_security_group_ids
+  db_subnet_group_name   = local.db_subnet_group_name
+  parameter_group_name   = local.parameter_group_name_id
+  option_group_name      = var.engine != "postgres" ? local.option_group : null
+  network_type           = var.network_type
+
+  availability_zone      = var.availability_zone
+  multi_az               = var.multi_az
+  iops                   = var.iops
+  storage_throughput     = var.storage_throughput
+  publicly_accessible    = var.publicly_accessible
+  ca_cert_identifier     = var.ca_cert_identifier
+  dedicated_log_volume   = var.dedicated_log_volume
+  upgrade_storage_config = var.upgrade_storage_config
+
+  allow_major_version_upgrade = var.allow_major_version_upgrade
+  auto_minor_version_upgrade  = var.auto_minor_version_upgrade
+  apply_immediately           = var.apply_immediately
+  maintenance_window          = var.maintenance_window
+  blue_green_update           = var.blue_green_update
+
+  snapshot_identifier              = var.snapshot_identifier
+  copy_tags_to_snapshot            = var.copy_tags_to_snapshot
+  skip_final_snapshot              = var.skip_final_snapshot
+  final_snapshot_identifier_prefix = var.final_snapshot_identifier_prefix
+
+  performance_insights_enabled          = var.performance_insights_enabled
+  performance_insights_retention_period = var.performance_insights_retention_period
+  performance_insights_kms_key_id       = var.performance_insights_enabled ? var.performance_insights_kms_key_id : null
+
+  replicate_source_db                  = var.replicate_source_db
+  replica_mode                         = var.replica_mode
+  backup_retention_period              = var.backup_retention_period
+  backup_window                        = var.backup_window
+  max_allocated_storage                = var.max_allocated_storage
+  monitoring_interval                  = var.monitoring_interval
+  monitoring_role_arn                  = var.monitoring_role_arn
+  monitoring_role_name                 = var.monitoring_role_name
+  monitoring_role_use_name_prefix      = var.monitoring_role_use_name_prefix
+  monitoring_role_description          = var.monitoring_role_description
+  create_monitoring_role               = var.create_monitoring_role
+  monitoring_role_permissions_boundary = var.monitoring_role_permissions_boundary
+
+  character_set_name       = var.character_set_name
+  nchar_character_set_name = var.nchar_character_set_name
+  timezone                 = var.timezone
+
+  enabled_cloudwatch_logs_exports        = var.enabled_cloudwatch_logs_exports
+  create_cloudwatch_log_group            = var.create_cloudwatch_log_group
+  cloudwatch_log_group_retention_in_days = var.cloudwatch_log_group_retention_in_days
+  cloudwatch_log_group_kms_key_id        = var.cloudwatch_log_group_kms_key_id
+  cloudwatch_log_group_skip_destroy      = var.cloudwatch_log_group_skip_destroy
+  cloudwatch_log_group_class             = var.cloudwatch_log_group_class
+  cloudwatch_log_group_tags              = var.cloudwatch_log_group_tags
+
+  timeouts = var.timeouts
+
+  deletion_protection      = var.deletion_protection
+  delete_automated_backups = var.delete_automated_backups
+
+  restore_to_point_in_time = var.restore_to_point_in_time
+  s3_import                = var.s3_import
+
+  db_instance_tags = var.db_instance_tags
+  tags             = var.tags
 }
 
-resource "aws_iam_role_policy_attachment" "rds_monitoring_policy" {
-  role       = aws_iam_role.rds_monitoring_role.name
-  policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonRDSEnhancedMonitoringRole"
-}
+module "db_instance_role_association" {
+  source = "./modules/db_instance_role_association"
 
-##-----------------------------------------------------------------------------
-## RDS subnets.
-##-----------------------------------------------------------------------------
-resource "aws_subnet" "rds_subnets" {
-  count = length(var.azs)
+  for_each = { for k, v in var.db_instance_role_associations : k => v if var.create_db_instance }
 
-  vpc_id                  = var.vpc_id
-  cidr_block              = cidrsubnet(var.base_cidr, 4, count.index)
-  availability_zone       = var.azs[count.index]
-  map_public_ip_on_launch = false
-
-  tags = {
-    Name        = "RDS Subnet - ${var.environment}-${count.index}"
-    Environment = var.environment
-  }
-}
-
-resource "aws_db_subnet_group" "rds_subnet_group" {
-  name        = "${var.environment}-rds-subnet-group"
-  description = "Subnet group for RDS instance in ${var.environment} environment"
-  subnet_ids  = aws_subnet.rds_subnets[*].id 
-
-  tags = {
-    Name        = "RDS Subnet Group - ${var.environment}"
-    Environment = var.environment
-  }
-}
-
-##-----------------------------------------------------------------------------
-## RDS security group.
-##-----------------------------------------------------------------------------
-resource "aws_security_group" "rds_sg" {
-  name        = "rds-security-group"
-  description = "Security group for RDS instance"
-  vpc_id      = var.vpc_id
-
-  ingress {
-    description = "Allow MySQL access"
-    from_port   = 3306
-    to_port     = 3306
-    protocol    = "tcp"
-    cidr_blocks = [var.base_cidr]
-  }
-
-  egress {
-    description = "Allow all outbound traffic"
-    from_port   = 0
-    to_port     = 0
-    protocol    = "-1"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-
-  tags = var.tags
-}
-
-##-----------------------------------------------------------------------------
-## RDS instance.
-##-----------------------------------------------------------------------------
-resource "aws_db_instance" "mysql" {
-  allocated_storage    = var.allocated_storage
-  engine               = "mysql"
-  engine_version       = var.engine_version
-  instance_class       = var.instance_class
-  db_name              = var.db_name
-  username             = var.username
-  password             = random_password.db_password.result
-  publicly_accessible  = var.publicly_accessible
-  skip_final_snapshot  = var.skip_final_snapshot
-
-  backup_retention_period = var.backup_retention_period
-  storage_type            = var.storage_type
-  storage_encrypted       = var.storage_encrypted
-
-  db_subnet_group_name = aws_db_subnet_group.rds_subnet_group.name
-  vpc_security_group_ids = [aws_security_group.rds_sg.id]
-
-  tags = var.tags
-}
-
-##-----------------------------------------------------------------------------
-## RDS Proxy Security Group
-##-----------------------------------------------------------------------------
-resource "aws_security_group" "rds_proxy_sg" {
-  name        = "rds-proxy-security-group"
-  description = "Security group for RDS Proxy"
-  vpc_id      = var.vpc_id
-
-  # ✅ Allow inbound MySQL connections from Lambda (public AWS IP range)
-  ingress {
-    description = "Allow Lambda to connect to RDS Proxy"
-    from_port   = 3306
-    to_port     = 3306
-    protocol    = "tcp"
-    cidr_blocks = [var.base_cidr]
-  }
-
-  # ✅ Allow all outbound traffic (needed for RDS Proxy to communicate)
-  egress {
-    from_port   = 0
-    to_port     = 0
-    protocol    = "tcp"
-    cidr_blocks = [var.base_cidr]
-  }
-
-  tags = var.tags
-}
-
-
-##-----------------------------------------------------------------------------
-## RDS Proxy instance
-##-----------------------------------------------------------------------------
-resource "aws_db_proxy" "rds_proxy" {
-  name                   = "${var.environment}-rds-proxy"
-  engine_family          = "MYSQL"
-  role_arn               = aws_iam_role.rds_proxy_role.arn
-  vpc_subnet_ids         = aws_subnet.rds_subnets[*].id  
-  vpc_security_group_ids = [aws_security_group.rds_proxy_sg.id]
-
-  auth {
-    description = "Authentication for RDS Proxy"
-    iam_auth    = "DISABLED"
-    secret_arn  = aws_secretsmanager_secret.db_credentials.arn
-  }
-
-  require_tls = var.require_tls
-
-  tags = {
-    Name        = "RDS Proxy - ${var.environment}"
-    Environment = var.environment
-  }
-
-  depends_on = [
-  aws_db_instance.mysql,
-  aws_security_group.rds_proxy_sg
-]
-}
-
-##-----------------------------------------------------------------------------
-## RDS Proxy target group.
-##-----------------------------------------------------------------------------
-resource "aws_db_proxy_target" "rds_proxy_target" {
-  db_proxy_name          = aws_db_proxy.rds_proxy.name
-  target_group_name      = "default"  # ✅ Use default target group
-  db_instance_identifier = aws_db_instance.mysql.identifier
-}
-
-##-----------------------------------------------------------------------------
-## RDS Proxy IAM role.
-##-----------------------------------------------------------------------------
-resource "aws_iam_role" "rds_proxy_role" {
-  name = "${var.environment}-rds-proxy-role"
-
-  assume_role_policy = jsonencode({
-    Version = "2012-10-17",
-    Statement = [{
-      Effect = "Allow",
-      Principal = {
-        Service = "rds.amazonaws.com"
-      },
-      Action = "sts:AssumeRole"
-    }]
-  })
-
-  tags = var.tags
-}
-
-resource "aws_iam_role_policy_attachment" "rds_proxy_secrets_policy" {
-  role       = aws_iam_role.rds_proxy_role.name
-  policy_arn = "arn:aws:iam::aws:policy/AmazonRDSFullAccess"
-}
-
-resource "aws_iam_role_policy_attachment" "rds_proxy_secrets_access" {
-  role       = aws_iam_role.rds_proxy_role.name
-  policy_arn = "arn:aws:iam::aws:policy/SecretsManagerReadWrite"  # ✅ Needed for secret access
-}
-
-resource "aws_iam_role_policy_attachment" "rds_proxy_data_access" {
-  role       = aws_iam_role.rds_proxy_role.name
-  policy_arn = "arn:aws:iam::aws:policy/AmazonRDSDataFullAccess"  # ✅ Optional, for querying data
+  feature_name           = each.key
+  role_arn               = each.value
+  db_instance_identifier = module.db_instance.db_instance_identifier
 }
