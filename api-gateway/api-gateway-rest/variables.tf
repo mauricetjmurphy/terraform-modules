@@ -52,6 +52,7 @@ variable "rest_variables" {
 
 variable "api_resources" {
   type = map(object({
+    function_name       = string
     path_part           = string
     http_method         = string
     integration_uri     = string
