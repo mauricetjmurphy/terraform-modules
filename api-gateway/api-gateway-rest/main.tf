@@ -212,12 +212,6 @@ resource "aws_lambda_permission" "api_gateway_lambda_permission" {
   function_name = "arn:aws:lambda:${var.region}:${data.aws_caller_identity.current.account_id}:function:${each.value.function_name}"
   principal     = "apigateway.amazonaws.com"
   source_arn    = "${aws_api_gateway_rest_api.rest_api.execution_arn}/*"
-
-  depends_on = [
-    data.aws_lambda_function.user_service_lambda,
-    data.aws_lambda_function.mail_service_lambda,
-    data.aws_lambda_function.payment_service_lambda
-  ]
 }
 
 ##----------------------------------------------------------------------------------
