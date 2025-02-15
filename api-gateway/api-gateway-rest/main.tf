@@ -112,26 +112,17 @@ resource "aws_api_gateway_method_settings" "logging" {
 ##----------------------------------------------------------------------------------
 ## IAM Role for API Gateway Logging
 ##----------------------------------------------------------------------------------
-resource "aws_api_gateway_account" "api_logging" {
-  cloudwatch_role_arn = aws_iam_role.apigateway_logging_role.arn
-
-  depends_on = [
-    aws_iam_role.apigateway_logging_role,
-    aws_iam_policy_attachment.apigateway_logs
-  ]
-}
-
 resource "aws_iam_role" "apigateway_logging_role" {
   name = "APIGatewayCloudWatchLogsRole"
 
   assume_role_policy = jsonencode({
-    Version = "2012-10-17",
+    Version = "2012-10-17"
     Statement = [{
-      Action = "sts:AssumeRole"
       Effect = "Allow"
       Principal = {
         Service = "apigateway.amazonaws.com"
       }
+      Action = "sts:AssumeRole"
     }]
   })
 }
@@ -152,20 +143,26 @@ resource "aws_iam_policy" "apigateway_logging_policy" {
           "logs:DescribeLogStreams",
           "logs:PutLogEvents"
         ],
-        Resource = [
-          "${aws_cloudwatch_log_group.api_gateway_execution_logs.arn}",
-          "${aws_cloudwatch_log_group.api_gateway_access_logs.arn}"
-        ]
+        Resource = "arn:aws:logs:${var.region}:${data.aws_caller_identity.current.account_id}:log-group:/aws/api-gateway/*"
       }
     ]
   })
 }
 
-resource "aws_iam_policy_attachment" "apigateway_logs" {
-  name       = "apigateway-logs-attachment"
-  roles      = [aws_iam_role.apigateway_logging_role.name]
+resource "aws_iam_role_policy_attachment" "apigateway_logs" {
   policy_arn = aws_iam_policy.apigateway_logging_policy.arn
+  role       = aws_iam_role.apigateway_logging_role.name
 }
+
+resource "aws_api_gateway_account" "api_logging" {
+  cloudwatch_role_arn = aws_iam_role.apigateway_logging_role.arn
+
+  depends_on = [
+    aws_iam_role.apigateway_logging_role,
+    aws_iam_policy_attachment.apigateway_logs
+  ]
+}
+
 
 ##----------------------------------------------------------------------------------
 ## CloudWatch Log Groups for Execution & Access Logs
@@ -212,11 +209,17 @@ resource "aws_lambda_permission" "api_gateway_lambda_permission" {
   for_each      = var.api_resources
   statement_id  = "AllowAPIGatewayInvoke-${each.key}"
   action        = "lambda:InvokeFunction"
-  function_name = each.value.function_name
+  function_name = "arn:aws:lambda:${var.region}:${data.aws_caller_identity.current.account_id}:function:${each.value.function_name}"
   principal     = "apigateway.amazonaws.com"
+  source_arn    = "${aws_api_gateway_rest_api.rest_api.execution_arn}/*"
 
-  source_arn = "${aws_api_gateway_rest_api.rest_api.execution_arn}/*"
+  depends_on = [
+    data.aws_lambda_function.user_service_lambda,
+    data.aws_lambda_function.mail_service_lambda,
+    data.aws_lambda_function.payment_service_lambda
+  ]
 }
+
 
 
 ##----------------------------------------------------------------------------------
