@@ -30,7 +30,6 @@ resource "aws_secretsmanager_secret" "this" {
 ################################################################################
 # Policy
 ################################################################################
-
 data "aws_iam_policy_document" "this" {
   count = var.create && var.create_policy ? 1 : 0
 
@@ -97,14 +96,6 @@ resource "aws_secretsmanager_secret_version" "this" {
   secret_string  = jsonencode(var.secret_values)
   secret_binary  = var.secret_binary
   version_stages = var.version_stages
-
-  lifecycle {
-    ignore_changes = [
-      "secret_string",
-      "secret_binary",
-      "version_stages"
-    ]
-  }
 }
 
 ################################################################################
