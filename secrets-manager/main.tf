@@ -99,7 +99,11 @@ resource "aws_secretsmanager_secret_version" "this" {
   version_stages = var.version_stages
 
   lifecycle {
-    ignore_changes = local.ignore_changes_list
+    ignore_changes = [
+      "secret_string",
+      "secret_binary",
+      "version_stages"
+    ]
   }
 }
 
