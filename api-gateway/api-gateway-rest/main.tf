@@ -63,9 +63,11 @@ resource "aws_api_gateway_deployment" "api_deployment" {
 
   depends_on = [
     aws_api_gateway_method.rest_api_method,
-    aws_api_gateway_integration.rest_api_integration
+    aws_api_gateway_integration.rest_api_integration,
+    aws_api_gateway_integration_response.integration_response
   ]
 }
+
 
 resource "aws_api_gateway_stage" "stage" {
   stage_name    = var.stage_name
@@ -114,7 +116,7 @@ resource "aws_iam_role" "apigateway_logging_role" {
   name = "APIGatewayCloudWatchLogsRole"
 
   assume_role_policy = jsonencode({
-    Version = "2012-10-17"
+    Version = "2012-10-17",
     Statement = [{
       Effect = "Allow"
       Principal = {
@@ -202,7 +204,6 @@ resource "aws_api_gateway_method_response" "method_response" {
   response_models = each.value.response_models
 }
 
-
 resource "aws_api_gateway_integration" "rest_api_integration" {
   for_each                = var.api_resources
   rest_api_id             = aws_api_gateway_rest_api.rest_api.id
@@ -221,7 +222,12 @@ resource "aws_api_gateway_integration_response" "integration_response" {
   status_code = each.value.status_code
 
   response_parameters = each.value.response_parameters
+
+  depends_on = [
+    aws_api_gateway_integration.rest_api_integration
+  ]
 }
+
 
 ##----------------------------------------------------------------------------------
 ## Lambda Permissions for API Gateway
