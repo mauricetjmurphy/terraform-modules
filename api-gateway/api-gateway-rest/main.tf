@@ -68,116 +68,16 @@ resource "aws_api_gateway_deployment" "api_deployment" {
   ]
 }
 
-
 resource "aws_api_gateway_stage" "stage" {
   stage_name    = var.stage_name
   rest_api_id   = aws_api_gateway_rest_api.rest_api.id
   deployment_id = aws_api_gateway_deployment.api_deployment.id
-
-  access_log_settings {
-    destination_arn = aws_cloudwatch_log_group.api_gateway_access_logs.arn
-    format = jsonencode({
-      requestId      = "$context.requestId"
-      ip             = "$context.identity.sourceIp"
-      requestTime    = "$context.requestTime"
-      httpMethod     = "$context.httpMethod"
-      resourcePath   = "$context.resourcePath"
-      status         = "$context.status"
-      responseLength = "$context.responseLength"
-    })
-  }
 
   xray_tracing_enabled = true
 
   depends_on = [
     aws_api_gateway_deployment.api_deployment
   ]
-}
-
-##----------------------------------------------------------------------------------
-## Enable Execution Logging via Method Settings
-##----------------------------------------------------------------------------------
-resource "aws_api_gateway_method_settings" "logging" {
-  rest_api_id = aws_api_gateway_rest_api.rest_api.id
-  stage_name  = aws_api_gateway_stage.stage.stage_name
-  method_path = "*/*"
-
-  settings {
-    logging_level      = "INFO"
-    data_trace_enabled = true
-    metrics_enabled    = true
-  }
-}
-
-##----------------------------------------------------------------------------------
-## IAM Role for API Gateway Logging
-##----------------------------------------------------------------------------------
-resource "aws_iam_role" "apigateway_logging_role" {
-  name = "APIGatewayCloudWatchLogsRole"
-
-  assume_role_policy = jsonencode({
-    Version = "2012-10-17",
-    Statement = [
-      {
-        Effect = "Allow",
-        Principal = {
-          Service = "apigateway.amazonaws.com"
-        },
-        Action = "sts:AssumeRole"
-      }
-    ]
-  })
-}
-
-
-resource "aws_iam_policy" "apigateway_logging_policy" {
-  name        = "APIGatewayLoggingPolicy"
-  description = "Allows API Gateway to write logs to CloudWatch"
-
-  policy = jsonencode({
-    Version = "2012-10-17",
-    Statement = [
-      {
-        Effect   = "Allow",
-        Action   = [
-          "logs:CreateLogGroup",
-          "logs:CreateLogStream",
-          "logs:DescribeLogGroups",
-          "logs:DescribeLogStreams",
-          "logs:PutLogEvents"
-        ],
-        Resource = "arn:aws:logs:${var.region}:${data.aws_caller_identity.current.account_id}:log-group:/aws/api-gateway/${var.api_name}*"
-      }
-    ]
-  })
-}
-
-
-resource "aws_iam_role_policy_attachment" "apigateway_logs" {
-  policy_arn = aws_iam_policy.apigateway_logging_policy.arn
-  role       = aws_iam_role.apigateway_logging_role.name
-}
-
-resource "aws_api_gateway_account" "api_logging" {
-  cloudwatch_role_arn = aws_iam_role.apigateway_logging_role.arn
-
-  depends_on = [
-    aws_iam_role.apigateway_logging_role,
-    aws_iam_role_policy_attachment.apigateway_logs
-  ]
-}
-
-##----------------------------------------------------------------------------------
-## CloudWatch Log Groups for Execution & Access Logs
-##----------------------------------------------------------------------------------
-resource "aws_cloudwatch_log_group" "api_gateway_execution_logs" {
-  name              = "/aws/api-gateway/${var.api_name}/execution-logs"
-  retention_in_days = 7
-}
-
-resource "aws_cloudwatch_log_group" "api_gateway_access_logs" {
-  name              = "/aws/api-gateway/${var.api_name}/access-logs"
-  retention_in_days = 7
 }
 
 ##----------------------------------------------------------------------------------
@@ -231,7 +131,6 @@ resource "aws_api_gateway_integration_response" "integration_response" {
     aws_api_gateway_integration.rest_api_integration
   ]
 }
-
 
 ##----------------------------------------------------------------------------------
 ## Lambda Permissions for API Gateway
