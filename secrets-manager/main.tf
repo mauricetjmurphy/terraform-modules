@@ -1,3 +1,7 @@
+locals {
+  ignore_changes_list = var.ignore_secret_changes ? ["secret_string", "secret_binary", "version_stages"] : []
+}
+
 ################################################################################
 # Secret
 ################################################################################
@@ -89,19 +93,15 @@ resource "aws_secretsmanager_secret_policy" "this" {
 resource "aws_secretsmanager_secret_version" "this" {
   count = var.create ? 1 : 0
 
-  secret_id = aws_secretsmanager_secret.this[0].id
-
-  secret_string = jsonencode(var.secret_values)
-  secret_binary = var.secret_binary
+  secret_id      = aws_secretsmanager_secret.this[0].id
+  secret_string  = jsonencode(var.secret_values)
+  secret_binary  = var.secret_binary
   version_stages = var.version_stages
 
   lifecycle {
-    ignore_changes = concat(
-      var.ignore_secret_changes ? ["secret_string", "secret_binary", "version_stages"] : []
-    )
+    ignore_changes = local.ignore_changes_list
   }
 }
-
 
 ################################################################################
 # Rotation (If Needed)
