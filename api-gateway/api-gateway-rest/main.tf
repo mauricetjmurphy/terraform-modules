@@ -146,11 +146,12 @@ resource "aws_iam_policy" "apigateway_logging_policy" {
           "logs:DescribeLogStreams",
           "logs:PutLogEvents"
         ],
-        Resource = "arn:aws:logs:${var.region}:${data.aws_caller_identity.current.account_id}:log-group:/aws/api-gateway/*"
+        Resource = "arn:aws:logs:${var.region}:${data.aws_caller_identity.current.account_id}:log-group:/aws/api-gateway/${var.api_name}*"
       }
     ]
   })
 }
+
 
 resource "aws_iam_role_policy_attachment" "apigateway_logs" {
   policy_arn = aws_iam_policy.apigateway_logging_policy.arn
