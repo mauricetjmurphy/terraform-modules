@@ -57,7 +57,7 @@ data "aws_iam_policy_document" "this" {
       }
 
       dynamic "not_principals" {
-        for_each = try(statement.value.not_principals, [])
+        for_each = try(statement.value.not_principals != null ? statement.value.not_principals : [], [])
 
         content {
           type        = not_principals.value.type
@@ -66,7 +66,7 @@ data "aws_iam_policy_document" "this" {
       }
 
       dynamic "condition" {
-        for_each = try(statement.value.conditions, [])
+        for_each = try(statement.value.conditions != null ? statement.value.conditions : [], [])
 
         content {
           test     = condition.value.test
