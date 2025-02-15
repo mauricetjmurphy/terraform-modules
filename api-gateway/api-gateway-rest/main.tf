@@ -123,9 +123,15 @@ resource "aws_iam_role" "apigateway_logging_role" {
         Service = "apigateway.amazonaws.com"
       }
       Action = "sts:AssumeRole"
+      Condition = {
+        StringEquals = {
+          "aws:SourceArn" = aws_api_gateway_rest_api.rest_api.execution_arn
+        }
+      }
     }]
   })
 }
+
 
 resource "aws_iam_policy" "apigateway_logging_policy" {
   name        = "APIGatewayLoggingPolicy"
