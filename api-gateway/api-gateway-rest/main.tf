@@ -117,18 +117,15 @@ resource "aws_iam_role" "apigateway_logging_role" {
 
   assume_role_policy = jsonencode({
     Version = "2012-10-17",
-    Statement = [{
-      Effect = "Allow"
-      Principal = {
-        Service = "apigateway.amazonaws.com"
+    Statement = [
+      {
+        Effect = "Allow",
+        Principal = {
+          Service = "apigateway.amazonaws.com"
+        },
+        Action = "sts:AssumeRole"
       }
-      Action = "sts:AssumeRole"
-      Condition = {
-        StringEquals = {
-          "aws:SourceArn" = aws_api_gateway_rest_api.rest_api.execution_arn
-        }
-      }
-    }]
+    ]
   })
 }
 
