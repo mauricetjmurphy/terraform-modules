@@ -266,4 +266,3 @@ resource "aws_api_gateway_integration" "proxy_integration" {
   type                    = "AWS_PROXY"
   uri                     = each.value.integration_uri
 }
-
