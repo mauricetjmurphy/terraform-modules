@@ -192,6 +192,17 @@ resource "aws_api_gateway_method" "rest_api_method" {
   authorization = "NONE"
 }
 
+resource "aws_api_gateway_method_response" "method_response" {
+  for_each    = var.api_resources
+  rest_api_id = aws_api_gateway_rest_api.rest_api.id
+  resource_id = aws_api_gateway_resource.api_resources[each.key].id
+  http_method = aws_api_gateway_method.rest_api_method[each.key].http_method
+  status_code = each.value.status_code
+
+  response_models = each.value.response_models
+}
+
+
 resource "aws_api_gateway_integration" "rest_api_integration" {
   for_each                = var.api_resources
   rest_api_id             = aws_api_gateway_rest_api.rest_api.id
@@ -199,7 +210,17 @@ resource "aws_api_gateway_integration" "rest_api_integration" {
   http_method             = aws_api_gateway_method.rest_api_method[each.key].http_method
   integration_http_method = "POST"
   type                    = "AWS_PROXY"
-  uri                     = "arn:aws:apigateway:${var.region}:lambda:path/2015-03-31/functions/${each.value.integration_uri}/invocations"
+  uri                     = each.value.integration_uri
+}
+
+resource "aws_api_gateway_integration_response" "integration_response" {
+  for_each    = var.api_resources
+  rest_api_id = aws_api_gateway_rest_api.rest_api.id
+  resource_id = aws_api_gateway_resource.api_resources[each.key].id
+  http_method = aws_api_gateway_method.rest_api_method[each.key].http_method
+  status_code = each.value.status_code
+
+  response_parameters = each.value.response_parameters
 }
 
 ##----------------------------------------------------------------------------------
@@ -209,7 +230,7 @@ resource "aws_lambda_permission" "api_gateway_lambda_permission" {
   for_each      = var.api_resources
   statement_id  = "AllowAPIGatewayInvoke-${each.key}"
   action        = "lambda:InvokeFunction"
-  function_name = "arn:aws:lambda:${var.region}:${data.aws_caller_identity.current.account_id}:function:${each.value.function_name}"
+  function_name = each.value.lambda_arn
   principal     = "apigateway.amazonaws.com"
   source_arn    = "${aws_api_gateway_rest_api.rest_api.execution_arn}/*"
 
@@ -245,3 +266,4 @@ resource "aws_api_gateway_integration" "proxy_integration" {
   type                    = "AWS_PROXY"
   uri                     = each.value.integration_uri
 }
+
