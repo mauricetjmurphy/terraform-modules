@@ -159,7 +159,6 @@ resource "aws_api_gateway_account" "api_logging" {
 
   depends_on = [
     aws_iam_role.apigateway_logging_role,
-    aws_iam_policy_attachment.apigateway_logs
   ]
 }
 
