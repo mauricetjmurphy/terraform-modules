@@ -6,6 +6,12 @@ variable "name" {
   description = "Name  (e.g. `app` or `cluster`)."
 }
 
+variable "project_name" {
+  type        = string
+  default     = ""
+  description = "Name of the project"
+}
+
 variable "environment" {
   type        = string
   default     = ""

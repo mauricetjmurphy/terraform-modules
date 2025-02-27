@@ -46,7 +46,7 @@ resource "aws_cognito_user_pool" "user_pool" {
       email_message = var.email_message != "" ? var.email_message : <<EOF
         Hi,
         <p>
-        A new account for <strong>${var.name}</strong> has been created for you.
+        A new account for <strong>${var.project_name}</strong> has been created for you.
         </p>
         <p></p>
         <p>Username: {username}</p>
