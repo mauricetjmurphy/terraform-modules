@@ -6,13 +6,19 @@ resource "aws_dynamodb_table" "this" {
   hash_key                    = var.hash_key
   range_key                   = var.range_key
   stream_enabled              = var.stream_enabled
-  stream_view_type            = var.stream_enabled ? var.stream_view_type : null  # ✅ Prevents errors if stream is disabled
-  table_class                 = var.table_class  # ✅ No need for lookup(), just use var.table_class
+  stream_view_type            = var.stream_enabled ? var.stream_view_type : null
+  table_class                 = var.table_class  # ✅ Fixed: Directly using var.table_class
   deletion_protection_enabled = var.deletion_protection_enabled
 
   # ✅ Define read/write capacity ONLY if using PROVISIONED mode
-  read_capacity  = var.billing_mode == "PROVISIONED" ? var.read_capacity : null
-  write_capacity = var.billing_mode == "PROVISIONED" ? var.write_capacity : null
+  dynamic "provisioned_throughput" {
+    for_each = var.billing_mode == "PROVISIONED" ? [1] : []
+
+    content {
+      read_capacity  = var.read_capacity
+      write_capacity = var.write_capacity
+    }
+  }
 
   ttl {
     enabled        = var.ttl_enabled
@@ -54,8 +60,14 @@ resource "aws_dynamodb_table" "this" {
       non_key_attributes = lookup(global_secondary_index.value, "non_key_attributes", [])
 
       # ✅ Define read/write capacity ONLY if using PROVISIONED mode
-      read_capacity  = var.billing_mode == "PROVISIONED" ? lookup(global_secondary_index.value, "read_capacity", null) : null
-      write_capacity = var.billing_mode == "PROVISIONED" ? lookup(global_secondary_index.value, "write_capacity", null) : null
+      dynamic "provisioned_throughput" {
+        for_each = var.billing_mode == "PROVISIONED" ? [1] : []
+
+        content {
+          read_capacity  = lookup(global_secondary_index.value, "read_capacity", null)
+          write_capacity = lookup(global_secondary_index.value, "write_capacity", null)
+        }
+      }
     }
   }
 
