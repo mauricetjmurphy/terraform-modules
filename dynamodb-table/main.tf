@@ -6,19 +6,13 @@ resource "aws_dynamodb_table" "this" {
   hash_key                    = var.hash_key
   range_key                   = var.range_key
   stream_enabled              = var.stream_enabled
-  stream_view_type            = var.stream_enabled ? var.stream_view_type : null  # ✅ Prevents error if stream is disabled
-  table_class                 = lookup(var.table_class, "table_class", "STANDARD")  # ✅ Ensures a default table class
+  stream_view_type            = var.stream_enabled ? var.stream_view_type : null  # ✅ Prevents errors if stream is disabled
+  table_class                 = var.table_class  # ✅ No need for lookup(), just use var.table_class
   deletion_protection_enabled = var.deletion_protection_enabled
 
-  # ✅ Only define throughput if using PROVISIONED mode
-  dynamic "provisioned_throughput" {
-    for_each = var.billing_mode == "PROVISIONED" ? [1] : []
-
-    content {
-      read_capacity  = var.read_capacity
-      write_capacity = var.write_capacity
-    }
-  }
+  # ✅ Define read/write capacity ONLY if using PROVISIONED mode
+  read_capacity  = var.billing_mode == "PROVISIONED" ? var.read_capacity : null
+  write_capacity = var.billing_mode == "PROVISIONED" ? var.write_capacity : null
 
   ttl {
     enabled        = var.ttl_enabled
@@ -59,15 +53,9 @@ resource "aws_dynamodb_table" "this" {
       projection_type    = global_secondary_index.value.projection_type
       non_key_attributes = lookup(global_secondary_index.value, "non_key_attributes", [])
 
-      # ✅ Only define throughput for PROVISIONED mode, otherwise remove it
-      dynamic "provisioned_throughput" {
-        for_each = var.billing_mode == "PROVISIONED" ? [1] : []
-
-        content {
-          read_capacity  = lookup(global_secondary_index.value, "read_capacity", null)
-          write_capacity = lookup(global_secondary_index.value, "write_capacity", null)
-        }
-      }
+      # ✅ Define read/write capacity ONLY if using PROVISIONED mode
+      read_capacity  = var.billing_mode == "PROVISIONED" ? lookup(global_secondary_index.value, "read_capacity", null) : null
+      write_capacity = var.billing_mode == "PROVISIONED" ? lookup(global_secondary_index.value, "write_capacity", null) : null
     }
   }
 
@@ -95,7 +83,7 @@ resource "aws_dynamodb_table" "this" {
     update = lookup(var.timeouts, "update", null)
   }
 
-  # ✅ Ensures Terraform does not unnecessarily modify GSIs
+  # ✅ Prevents unnecessary Terraform modifications to GSIs
   lifecycle {
     ignore_changes = [global_secondary_index]
   }
