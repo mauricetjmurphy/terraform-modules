@@ -4,10 +4,10 @@ resource "aws_dynamodb_table" "this" {
   name                        = var.name
   billing_mode                = var.billing_mode
   hash_key                    = var.hash_key
-  range_key                   = lookup(var.range_key, "range_key", null)
+  range_key                   = var.range_key
   stream_enabled              = var.stream_enabled
-  stream_view_type            = var.stream_view_type
-  table_class                 = var.table_class
+  stream_view_type            = var.stream_enabled ? var.stream_view_type : null  # ✅ Prevents error if stream is disabled
+  table_class                 = lookup(var.table_class, "table_class", "STANDARD")  # ✅ Ensures a default table class
   deletion_protection_enabled = var.deletion_protection_enabled
 
   # ✅ Only define throughput if using PROVISIONED mode
@@ -59,9 +59,15 @@ resource "aws_dynamodb_table" "this" {
       projection_type    = global_secondary_index.value.projection_type
       non_key_attributes = lookup(global_secondary_index.value, "non_key_attributes", [])
 
-      # ✅ Only define throughput for PROVISIONED mode
-      read_capacity  = var.billing_mode == "PROVISIONED" ? lookup(global_secondary_index.value, "read_capacity", null) : null
-      write_capacity = var.billing_mode == "PROVISIONED" ? lookup(global_secondary_index.value, "write_capacity", null) : null
+      # ✅ Only define throughput for PROVISIONED mode, otherwise remove it
+      dynamic "provisioned_throughput" {
+        for_each = var.billing_mode == "PROVISIONED" ? [1] : []
+
+        content {
+          read_capacity  = lookup(global_secondary_index.value, "read_capacity", null)
+          write_capacity = lookup(global_secondary_index.value, "write_capacity", null)
+        }
+      }
     }
   }
 
