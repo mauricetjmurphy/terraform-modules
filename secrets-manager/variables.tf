@@ -128,9 +128,8 @@ variable "ignore_secret_changes" {
 }
 
 variable "secret_values" {
-  description = "Map of key-value pairs to store in AWS Secrets Manager"
-  type        = map(string)
-  default     = {}
+  type        = any
+  description = "Secret values to store (can be a map of nested maps)"
 }
 
 variable "secret_binary" {
