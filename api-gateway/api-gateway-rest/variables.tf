@@ -51,18 +51,18 @@ variable "rest_variables" {
 }
 
 variable "api_resources" {
+  description = "Map of API resources"
   type = map(object({
-    function_name       = string
-    path_part           = string
-    http_method         = string
-    integration_uri     = string
-    lambda_arn          = optional(string)
-    status_code         = string
-    response_models     = map(string)
-    response_parameters = optional(map(string), {})
+    path_part  = string
+    lambda_arn = string
+    methods    = map(object({
+      integration_uri     = string
+      status_code         = string
+      response_models     = map(string)
+      response_parameters = optional(map(string), {})
+    }))
   }))
 }
-
 
 variable "authorization" {
   type        = string
