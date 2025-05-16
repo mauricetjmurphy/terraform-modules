@@ -55,6 +55,7 @@ variable "api_resources" {
   type = map(object({
     path_part  = string
     lambda_arn = string
+    proxy      = optional(bool, false)
     methods    = map(object({
       integration_uri     = string
       status_code         = string
@@ -63,6 +64,7 @@ variable "api_resources" {
     }))
   }))
 }
+
 
 variable "authorization" {
   type        = string
