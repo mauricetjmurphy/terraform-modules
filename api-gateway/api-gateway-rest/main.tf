@@ -207,17 +207,6 @@ resource "aws_api_gateway_integration" "proxy_integration" {
   uri                     = each.value.methods["ANY"].integration_uri
 }
 
-resource "aws_api_gateway_integration_response" "proxy_integration_response" {
-  for_each    = {
-    for k, v in var.api_resources : k => v if try(v.proxy, false)
-  }
-
-  rest_api_id = aws_api_gateway_rest_api.rest_api.id
-  resource_id = aws_api_gateway_resource.proxy_resources[each.key].id
-  http_method = aws_api_gateway_method.proxy_methods[each.key].http_method
-  status_code = "200"
-}
-
 resource "aws_lambda_permission" "proxy_lambda_permission" {
   for_each      = {
     for k, v in var.api_resources : k => v if try(v.proxy, false)
