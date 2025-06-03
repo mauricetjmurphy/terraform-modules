@@ -34,7 +34,7 @@ variable "user_data" {
   type        = string
 }
 
-variable "depends_on" {
+variable "depends" {
   description = "Optional external dependency injection"
   type        = any
   default     = []
