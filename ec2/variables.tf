@@ -33,9 +33,3 @@ variable "user_data" {
   description = "Startup script to provision the relay node"
   type        = string
 }
-
-variable "depends" {
-  description = "Optional external dependency injection"
-  type        = any
-  default     = []
-}

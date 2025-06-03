@@ -11,7 +11,6 @@ resource "aws_instance" "relay_node" {
   }
 
   user_data  = var.user_data
-  depends_on = var.depends
 
   lifecycle {
     ignore_changes = [user_data]
