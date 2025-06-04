@@ -33,3 +33,9 @@ variable "user_data" {
   description = "Startup script to provision the relay node"
   type        = string
 }
+
+variable "associate_public_ip_address" {
+  description = "Associate a public ip address"
+  type        = bool
+}
+
