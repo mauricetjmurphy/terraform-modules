@@ -2,6 +2,10 @@ resource "aws_s3_bucket" "website" {
   bucket        = var.bucket_name
   force_destroy = true
 
+  lifecycle {
+    prevent_destroy = false
+  }
+
   tags = var.tags
 }
 
@@ -74,7 +78,7 @@ resource "aws_acm_certificate_validation" "cert" {
 }
 
 resource "aws_cloudfront_origin_access_identity" "oai" {
-  count   = var.private ? 1 : 0
+  count   = 1
   comment = "OAI for ${var.bucket_name}"
 }
 
@@ -89,7 +93,7 @@ resource "aws_cloudfront_distribution" "cdn" {
     origin_id   = "s3-website"
 
     s3_origin_config {
-      origin_access_identity = var.private ? aws_cloudfront_origin_access_identity.oai[0].cloudfront_access_identity_path : null
+      origin_access_identity = aws_cloudfront_origin_access_identity.oai[0].cloudfront_access_identity_path
     }
   }
 
