@@ -9,8 +9,7 @@ output "s3_bucket_name" {
 }
 
 output "acm_certificate_arn" {
-  description = "ARN of the validated ACM certificate."
-  value       = aws_acm_certificate.cert.arn
+  value = var.aws_acm_certificate
 }
 
 output "cloudfront_distribution_id" {
