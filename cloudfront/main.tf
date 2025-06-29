@@ -48,7 +48,6 @@ data "aws_iam_policy_document" "public_read" {
 resource "aws_acm_certificate" "cert" {
   domain_name       = var.domain_name
   validation_method = "DNS"
-  provider          = aws.us_east_1
 
   tags = var.tags
 }
