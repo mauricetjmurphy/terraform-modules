@@ -19,12 +19,6 @@ variable "tags" {
   default     = {}
 }
 
-variable "public" {
-  description = "Whether the site is public (true) or private (false)."
-  type        = bool
-  default     = true
-}
-
 variable "private" {
   description = "Whether to use CloudFront signed URLs via OAI."
   type        = bool

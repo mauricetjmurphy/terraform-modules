@@ -30,22 +30,23 @@ resource "aws_s3_bucket_website_configuration" "website" {
   }
 }
 
-resource "aws_s3_bucket_policy" "website" {
-  count  = var.public ? 1 : 0
+resource "aws_s3_bucket_policy" "private_access" {
   bucket = aws_s3_bucket.website.id
 
-  policy = data.aws_iam_policy_document.public_read.json
+  policy = data.aws_iam_policy_document.private_access.json
 }
 
-data "aws_iam_policy_document" "public_read" {
+data "aws_iam_policy_document" "private_access" {
   statement {
     actions   = ["s3:GetObject"]
     resources = ["${aws_s3_bucket.website.arn}/*"]
 
     principals {
       type        = "AWS"
-      identifiers = ["*"]
+      identifiers = [aws_cloudfront_origin_access_identity.oai[0].iam_arn]
     }
+
+    effect = "Allow"
   }
 }
 
