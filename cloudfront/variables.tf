@@ -19,6 +19,17 @@ variable "tags" {
   default     = {}
 }
 
+variable "aws_acm_certificate" {
+  description = "ARN of the existing ACM certificate to use for CloudFront"
+  type        = string
+}
+
+variable "create_route53_alias_record" {
+  description = "Whether to create a Route53 A record alias for the subdomain"
+  type        = bool
+  default     = false
+}
+
 variable "private" {
   description = "Whether to use CloudFront signed URLs via OAI."
   type        = bool
