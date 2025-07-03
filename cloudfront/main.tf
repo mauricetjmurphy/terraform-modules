@@ -1,90 +1,74 @@
 resource "aws_s3_bucket" "website" {
   bucket        = var.bucket_name
   force_destroy = true
-
-  lifecycle {
-    prevent_destroy = false
-  }
-
-  tags = var.tags
+  tags          = var.tags
 }
 
 resource "aws_s3_bucket_public_access_block" "website" {
-  bucket = aws_s3_bucket.website.id
-
+  bucket                  = aws_s3_bucket.website.id
   block_public_acls       = true
   block_public_policy     = true
   ignore_public_acls      = true
   restrict_public_buckets = true
 }
 
-resource "aws_s3_bucket_website_configuration" "website" {
-  bucket = aws_s3_bucket.website.id
+resource "aws_cloudfront_origin_access_identity" "oai" {
+  comment = "OAI for ${var.bucket_name}"
+}
 
-  index_document {
-    suffix = "index.html"
-  }
 
-  error_document {
-    key = "error.html"
+data "aws_iam_policy_document" "private_access" {
+  statement {
+    sid     = "AllowCloudFrontRead"
+    effect  = "Allow"
+    actions = ["s3:GetObject"]
+
+    resources = [
+      "${aws_s3_bucket.website.arn}/*"
+    ]
+
+    principals {
+      type        = "AWS"
+      identifiers = [aws_cloudfront_origin_access_identity.oai.iam_arn]
+    }
   }
 }
 
 resource "aws_s3_bucket_policy" "private_access" {
   bucket = aws_s3_bucket.website.id
-
   policy = data.aws_iam_policy_document.private_access.json
-}
-
-data "aws_iam_policy_document" "private_access" {
-  statement {
-    actions   = ["s3:GetObject"]
-    resources = ["${aws_s3_bucket.website.arn}/*"]
-
-    principals {
-      type        = "AWS"
-      identifiers = [aws_cloudfront_origin_access_identity.oai[0].iam_arn]
-    }
-
-    effect = "Allow"
-  }
-}
-
-resource "aws_cloudfront_origin_access_identity" "oai" {
-  count   = 1
-  comment = "OAI for ${var.bucket_name}"
 }
 
 resource "aws_cloudfront_distribution" "cdn" {
   enabled             = true
-  default_root_object = "index.html"
   is_ipv6_enabled     = true
   price_class         = "PriceClass_100"
+  default_root_object = "index.html"
 
-  aliases = [var.domain_name]
+  aliases             = [var.domain_name]
 
   origin {
-  domain_name = aws_s3_bucket_website_configuration.website.website_endpoint
-  origin_id   = "${var.bucket_name}"
+    origin_id   = "s3-origin"
+    domain_name = aws_s3_bucket.website.bucket_regional_domain_name
 
-  custom_origin_config {
-    origin_protocol_policy = "http-only"
-    http_port              = 80
-    https_port             = 443
-    origin_ssl_protocols   = ["TLSv1.2"]
+    s3_origin_config {
+      origin_access_identity = aws_cloudfront_origin_access_identity.oai.cloudfront_access_identity_path
     }
   }
 
   default_cache_behavior {
-    target_origin_id       = "s3-website"
+    target_origin_id       = "s3-origin"
     viewer_protocol_policy = "redirect-to-https"
-    allowed_methods        = ["GET", "HEAD"]
-    cached_methods         = ["GET", "HEAD"]
-    compress               = true
-    trusted_key_groups     = var.private ? [var.key_group_id] : null
+
+    allowed_methods = ["GET", "HEAD"]
+    cached_methods  = ["GET", "HEAD"]
+    compress        = true
+
+    trusted_key_groups = var.private ? [var.key_group_id] : null
 
     forwarded_values {
       query_string = false
+
       cookies {
         forward = "none"
       }
@@ -99,9 +83,9 @@ resource "aws_cloudfront_distribution" "cdn" {
   }
 
   viewer_certificate {
-    acm_certificate_arn            = var.aws_acm_certificate
-    ssl_support_method             = "sni-only"
-    minimum_protocol_version       = "TLSv1.2_2021"
+    acm_certificate_arn      = var.aws_acm_certificate
+    ssl_support_method       = "sni-only"
+    minimum_protocol_version = "TLSv1.2_2021"
   }
 
   restrictions {
