@@ -16,4 +16,17 @@ resource "aws_lambda_function" "this" {
   environment {
     variables = var.lambda_env_vars
   }
+
+  tags = {
+    environment = var.environment
+  }
+}
+
+resource "aws_lambda_permission" "allow_cloudwatch" {
+  count         = var.enable_cloudwatch_permission && var.cloudwatch_event_rule_arn != null ? 1 : 0
+  statement_id  = "AllowExecutionFromCloudWatch"
+  action        = "lambda:InvokeFunction"
+  function_name = aws_lambda_function.this.function_name
+  principal     = "events.amazonaws.com"
+  source_arn    = var.cloudwatch_event_rule_arn
 }
