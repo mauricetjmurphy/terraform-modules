@@ -43,7 +43,3 @@ variable "lambda_env_vars" {
   type = map(string)
 }
 
-variable "depends_on" {
-  type    = list(any)
-  default = []
-}

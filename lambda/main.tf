@@ -16,6 +16,4 @@ resource "aws_lambda_function" "this" {
   environment {
     variables = var.lambda_env_vars
   }
-
-  depends_on = var.depends_on
 }
