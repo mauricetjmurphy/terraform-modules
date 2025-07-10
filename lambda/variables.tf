@@ -47,15 +47,3 @@ variable "security_group_ids" {
 variable "lambda_env_vars" {
   type = map(string)
 }
-
-variable "enable_cloudwatch_permission" {
-  description = "Whether to create a CloudWatch invoke permission"
-  type        = bool
-  default     = false
-}
-
-variable "cloudwatch_event_rule_arn" {
-  description = "ARN of the CloudWatch Event Rule that will trigger the Lambda"
-  type        = string
-  default     = null
-}
