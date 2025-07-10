@@ -5,18 +5,8 @@ resource "aws_secretsmanager_secret" "this" {
   description             = var.description
   recovery_window_in_days = var.recovery_window_in_days
   tags                    = var.tags
-}
 
-resource "aws_secretsmanager_secret_version" "this" {
-  secret_id     = aws_secretsmanager_secret.this.id
-  secret_string = jsonencode(var.secret_values)
-}
-
-resource "aws_secretsmanager_resource_policy" "this" {
-  count      = var.create_policy ? 1 : 0
-  secret_arn = aws_secretsmanager_secret.this.arn
-
-  policy = jsonencode({
+  policy = var.create_policy ? jsonencode({
     Version = "2012-10-17"
     Statement = [
       for role_name in var.reader_role_names : {
@@ -26,8 +16,14 @@ resource "aws_secretsmanager_resource_policy" "this" {
           AWS = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:role/${role_name}"
         }
         Action    = "secretsmanager:GetSecretValue"
-        Resource  = aws_secretsmanager_secret.this.arn
+        Resource  = "*"
       }
     ]
-  })
+  }) : null
 }
+
+resource "aws_secretsmanager_secret_version" "this" {
+  secret_id     = aws_secretsmanager_secret.this.id
+  secret_string = jsonencode(var.secret_values)
+}
+
