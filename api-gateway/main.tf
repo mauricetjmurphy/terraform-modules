@@ -97,6 +97,20 @@ resource "aws_api_gateway_integration" "proxy" {
   uri                     = "arn:aws:apigateway:${var.region}:lambda:path/2015-03-31/functions/${each.value.lambda_arn}/invocations"
 }
 
+resource "aws_lambda_permission" "apigw" {
+  for_each = {
+    for key, value in var.api_resources : key => value
+    if value.proxy
+  }
+
+  statement_id  = "AllowAPIGatewayInvoke-${each.key}"
+  action        = "lambda:InvokeFunction"
+  function_name = each.value.lambda_arn
+  principal     = "apigateway.amazonaws.com"
+
+  source_arn = "arn:aws:execute-api:${var.region}:${data.aws_caller_identity.current.account_id}:${aws_api_gateway_rest_api.this.id}/*/${aws_api_gateway_method.proxy[each.key].http_method}/${each.key}/*"
+}
+
 resource "aws_api_gateway_deployment" "deployment" {
   depends_on = [
     aws_api_gateway_method.method,
