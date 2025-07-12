@@ -47,3 +47,21 @@ variable "security_group_ids" {
 variable "lambda_env_vars" {
   type = map(string)
 }
+
+variable "enable_vpc" {
+  description = "Whether the Lambda should run inside a VPC"
+  type        = bool
+  default     = false
+}
+
+variable "subnet_ids" {
+  description = "List of subnet IDs for Lambda VPC config"
+  type        = list(string)
+  default     = []
+}
+
+variable "security_group_ids" {
+  description = "List of security group IDs for Lambda VPC config"
+  type        = list(string)
+  default     = []
+}

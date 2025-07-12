@@ -8,9 +8,12 @@ resource "aws_lambda_function" "this" {
   s3_bucket     = var.s3_bucket
   s3_key        = var.s3_key
 
-  vpc_config {
-    subnet_ids         = var.subnet_ids
-    security_group_ids = var.security_group_ids
+  dynamic "vpc_config" {
+    for_each = var.enable_vpc ? [1] : []
+    content {
+      subnet_ids         = var.subnet_ids
+      security_group_ids = var.security_group_ids
+    }
   }
 
   environment {
