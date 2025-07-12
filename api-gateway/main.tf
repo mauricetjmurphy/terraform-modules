@@ -60,34 +60,49 @@ resource "aws_api_gateway_integration" "integration" {
   uri                     = each.value.config.integration_uri
 }
 
-resource "aws_api_gateway_resource" "payment_proxy" {
+resource "aws_api_gateway_resource" "proxy" {
+  for_each = {
+    for key, value in var.api_resources : key => value
+    if value.proxy
+  }
+
   rest_api_id = aws_api_gateway_rest_api.this.id
-  parent_id   = aws_api_gateway_resource.resource["payment"].id
+  parent_id   = aws_api_gateway_resource.resource[each.key].id
   path_part   = "{proxy+}"
 }
 
-resource "aws_api_gateway_method" "payment_proxy_method" {
+resource "aws_api_gateway_method" "proxy" {
+  for_each = {
+    for key, value in var.api_resources : key => value
+    if value.proxy
+  }
+
   rest_api_id   = aws_api_gateway_rest_api.this.id
-  resource_id   = aws_api_gateway_resource.payment_proxy.id
+  resource_id   = aws_api_gateway_resource.proxy[each.key].id
   http_method   = "ANY"
   authorization = "NONE"
 }
 
-resource "aws_api_gateway_integration" "payment_proxy_integration" {
+resource "aws_api_gateway_integration" "proxy" {
+  for_each = {
+    for key, value in var.api_resources : key => value
+    if value.proxy
+  }
+
   rest_api_id             = aws_api_gateway_rest_api.this.id
-  resource_id             = aws_api_gateway_resource.payment_proxy.id
-  http_method             = aws_api_gateway_method.payment_proxy_method.http_method
+  resource_id             = aws_api_gateway_resource.proxy[each.key].id
+  http_method             = aws_api_gateway_method.proxy[each.key].http_method
   integration_http_method = "POST"
   type                    = "AWS_PROXY"
-  uri                     = data.aws_lambda_function.payment_service_lambda.invoke_arn
+  uri                     = each.value.lambda_arn
 }
 
 resource "aws_api_gateway_deployment" "deployment" {
   depends_on = [
     aws_api_gateway_method.method,
     aws_api_gateway_integration.integration,
-    aws_api_gateway_method.payment_proxy_method,
-    aws_api_gateway_integration.payment_proxy_integration
+    aws_api_gateway_method.proxy,
+    aws_api_gateway_integration.proxy
   ]
 
   rest_api_id = aws_api_gateway_rest_api.this.id
