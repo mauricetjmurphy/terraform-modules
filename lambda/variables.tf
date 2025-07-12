@@ -36,14 +36,6 @@ variable "s3_key" {
   type = string
 }
 
-variable "subnet_ids" {
-  type = list(string)
-}
-
-variable "security_group_ids" {
-  type = list(string)
-}
-
 variable "lambda_env_vars" {
   type = map(string)
 }
